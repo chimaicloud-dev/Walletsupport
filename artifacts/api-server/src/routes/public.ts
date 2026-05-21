@@ -53,6 +53,7 @@ router.post("/:handle/contact", async (req, res) => {
     token,
     status: "open",
     isRead: false,
+    agentName: null,
   }).returning();
 
   await db.insert(messagesTable).values({
@@ -83,7 +84,7 @@ router.get("/link/:slug", async (req, res) => {
   }
   res.json({
     handle: user.handle,
-    displayName: user.displayName,
+    displayName: link.customName?.trim() || user.displayName,
     bio: user.bio ?? null,
     avatarUrl: user.avatarUrl ?? null,
   });
@@ -107,6 +108,7 @@ router.post("/link/:slug/contact", async (req, res) => {
 
   const token = generateToken();
   const subject = `Chat with ${guestName}`;
+  const agentName = link.customName?.trim() || null;
 
   const [conv] = await db.insert(conversationsTable).values({
     ownerId: user.id,
@@ -116,6 +118,7 @@ router.post("/link/:slug/contact", async (req, res) => {
     token,
     status: "open",
     isRead: false,
+    agentName,
   }).returning();
 
   await db.insert(messagesTable).values({
@@ -150,7 +153,7 @@ router.get("/conversations/:token", async (req, res) => {
     id: conv.id,
     subject: conv.subject,
     guestName: conv.guestName,
-    ownerDisplayName: owner?.displayName ?? "Support",
+    ownerDisplayName: conv.agentName || owner?.displayName || "Support",
     messages: msgs.map(m => ({
       id: m.id,
       conversationId: m.conversationId,

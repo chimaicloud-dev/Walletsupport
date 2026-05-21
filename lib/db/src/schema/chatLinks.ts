@@ -8,6 +8,7 @@ export const chatLinksTable = pgTable("chat_links", {
   ownerId: integer("owner_id").notNull().references(() => usersTable.id),
   slug: text("slug").notNull().unique(),
   label: text("label").notNull(),
+  customName: text("custom_name"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

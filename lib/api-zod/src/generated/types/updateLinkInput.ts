@@ -6,17 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateLinkInput {
-  /**
-     * @minLength 3
-     * @maxLength 50
-     */
-  slug: string;
+export interface UpdateLinkInput {
+  /** @maxLength 80 */
+  customName?: string;
   /**
      * @minLength 1
      * @maxLength 80
      */
-  label: string;
-  /** @maxLength 80 */
-  customName?: string;
+  label?: string;
 }

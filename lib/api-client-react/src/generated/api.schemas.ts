@@ -45,6 +45,8 @@ export interface ChatLink {
   id: number;
   slug: string;
   label: string;
+  /** @nullable */
+  customName?: string | null;
   createdAt: string;
 }
 
@@ -59,6 +61,18 @@ export interface CreateLinkInput {
      * @maxLength 80
      */
   label: string;
+  /** @maxLength 80 */
+  customName?: string;
+}
+
+export interface UpdateLinkInput {
+  /** @maxLength 80 */
+  customName?: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  label?: string;
 }
 
 export type ConversationStatus = typeof ConversationStatus[keyof typeof ConversationStatus];

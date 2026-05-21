@@ -9,6 +9,7 @@ export const conversationsTable = pgTable("conversations", {
   guestName: text("guest_name").notNull(),
   guestEmail: text("guest_email"),
   subject: text("subject").notNull(),
+  agentName: text("agent_name"),
   status: text("status").notNull().default("open"),
   isRead: boolean("is_read").notNull().default(false),
   token: text("token").notNull().unique(),

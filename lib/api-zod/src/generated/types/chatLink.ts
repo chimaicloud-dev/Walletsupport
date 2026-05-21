@@ -10,5 +10,7 @@ export interface ChatLink {
   id: number;
   slug: string;
   label: string;
+  /** @nullable */
+  customName?: string | null;
   createdAt: string;
 }

@@ -59,7 +59,7 @@ router.get("/", requireAuth, async (req, res) => {
 
 router.get("/:id", requireAuth, async (req, res) => {
   const clerkUserId = (req as any).clerkUserId;
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
   if (!user) {
     res.status(404).json({ error: "Not found" });
@@ -90,7 +90,7 @@ router.get("/:id", requireAuth, async (req, res) => {
 
 router.post("/:id/read", requireAuth, async (req, res) => {
   const clerkUserId = (req as any).clerkUserId;
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
   if (!user) {
     res.status(404).json({ error: "Not found" });
@@ -124,7 +124,7 @@ router.post("/:id/read", requireAuth, async (req, res) => {
 
 router.get("/:id/messages", requireAuth, async (req, res) => {
   const clerkUserId = (req as any).clerkUserId;
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
   if (!user) {
     res.status(401).json({ error: "Unauthorized" });
@@ -153,7 +153,7 @@ router.get("/:id/messages", requireAuth, async (req, res) => {
 
 router.post("/:id/messages", requireAuth, async (req, res) => {
   const clerkUserId = (req as any).clerkUserId;
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   const { content } = req.body;
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));

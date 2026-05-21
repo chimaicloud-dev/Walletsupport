@@ -21,5 +21,6 @@ export * from './message';
 export * from './messageInput';
 export * from './messageSenderType';
 export * from './publicProfile';
+export * from './updateLinkInput';
 export * from './userProfile';
 export * from './userProfileInput';

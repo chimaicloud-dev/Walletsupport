@@ -78,6 +78,7 @@ export const ListLinksResponseItem = zod.object({
   "id": zod.number(),
   "slug": zod.string(),
   "label": zod.string(),
+  "customName": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListLinksResponse = zod.array(ListLinksResponseItem)
@@ -91,11 +92,41 @@ export const createLinkBodySlugMax = 50;
 
 export const createLinkBodyLabelMax = 80;
 
+export const createLinkBodyCustomNameMax = 80;
+
 
 
 export const CreateLinkBody = zod.object({
   "slug": zod.string().min(createLinkBodySlugMin).max(createLinkBodySlugMax),
-  "label": zod.string().min(1).max(createLinkBodyLabelMax)
+  "label": zod.string().min(1).max(createLinkBodyLabelMax),
+  "customName": zod.string().max(createLinkBodyCustomNameMax).optional()
+})
+
+
+/**
+ * @summary Update a custom chat link's custom name
+ */
+export const UpdateLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateLinkBodyCustomNameMax = 80;
+
+export const updateLinkBodyLabelMax = 80;
+
+
+
+export const UpdateLinkBody = zod.object({
+  "customName": zod.string().max(updateLinkBodyCustomNameMax).optional(),
+  "label": zod.string().min(1).max(updateLinkBodyLabelMax).optional()
+})
+
+export const UpdateLinkResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "label": zod.string(),
+  "customName": zod.string().nullish(),
+  "createdAt": zod.string()
 })
 
 

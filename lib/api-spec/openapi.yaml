@@ -112,6 +112,29 @@ paths:
                 $ref: "#/components/schemas/ChatLink"
 
   /links/{id}:
+    put:
+      operationId: updateLink
+      tags: [links]
+      summary: Update a custom chat link's custom name
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLinkInput"
+      responses:
+        "200":
+          description: Updated link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatLink"
     delete:
       operationId: deleteLink
       tags: [links]
@@ -430,6 +453,8 @@ components:
           type: string
         label:
           type: string
+        customName:
+          type: ["string", "null"]
         createdAt:
           type: string
       required: [id, slug, label, createdAt]
@@ -445,7 +470,21 @@ components:
           type: string
           minLength: 1
           maxLength: 80
+        customName:
+          type: string
+          maxLength: 80
       required: [slug, label]
+
+    UpdateLinkInput:
+      type: object
+      properties:
+        customName:
+          type: string
+          maxLength: 80
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
 
     Conversation:
       type: object

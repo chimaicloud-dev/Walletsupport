@@ -33,6 +33,7 @@ import type {
   Message,
   MessageInput,
   PublicProfile,
+  UpdateLinkInput,
   UserProfile,
   UserProfileInput
 } from './api.schemas';
@@ -497,6 +498,78 @@ export const useCreateLink = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateLinkMutationOptions(options));
+    }
+
+export const getUpdateLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/links/${id}`
+}
+
+/**
+ * @summary Update a custom chat link's custom name
+ */
+export const updateLink = async (id: number,
+    updateLinkInput: UpdateLinkInput, options?: RequestInit): Promise<ChatLink> => {
+
+  return customFetch<ChatLink>(getUpdateLinkUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateLinkInput,)
+  }
+);}
+
+
+
+
+export const getUpdateLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLink>>, TError,{id: number;data: BodyType<UpdateLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLink>>, TError,{id: number;data: BodyType<UpdateLinkInput>}, TContext> => {
+
+const mutationKey = ['updateLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLink>>, {id: number;data: BodyType<UpdateLinkInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateLink(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLinkMutationResult = NonNullable<Awaited<ReturnType<typeof updateLink>>>
+    export type UpdateLinkMutationBody = BodyType<UpdateLinkInput>
+    export type UpdateLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a custom chat link's custom name
+ */
+export const useUpdateLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLink>>, TError,{id: number;data: BodyType<UpdateLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateLink>>,
+        TError,
+        {id: number;data: BodyType<UpdateLinkInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateLinkMutationOptions(options));
     }
 
 export const getDeleteLinkUrl = (id: number,) => {
