@@ -13,8 +13,11 @@ import OnboardingPage from "@/pages/onboarding";
 import InboxPage from "@/pages/inbox";
 import ThreadPage from "@/pages/thread";
 import SettingsPage from "@/pages/settings";
+import LinksPage from "@/pages/links";
 import PublicChatPage from "@/pages/public-chat";
 import PublicThreadPage from "@/pages/public-thread";
+import PublicLinkChatPage from "@/pages/public-link-chat";
+import PublicLinkThreadPage from "@/pages/public-link-thread";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -188,9 +191,12 @@ function ClerkProviderWithRoutes() {
             <Route path="/inbox" component={() => <ProtectedRoute component={InboxPage} />} />
             <Route path="/inbox/:id" component={() => <ProtectedRoute component={ThreadPage} />} />
             <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
-            
+            <Route path="/links" component={() => <ProtectedRoute component={LinksPage} />} />
+
             <Route path="/chat/:handle" component={PublicChatPage} />
             <Route path="/chat/:handle/thread/:token" component={PublicThreadPage} />
+            <Route path="/c/:slug" component={PublicLinkChatPage} />
+            <Route path="/c/:slug/thread/:token" component={PublicLinkThreadPage} />
             
             <Route component={NotFound} />
           </Switch>

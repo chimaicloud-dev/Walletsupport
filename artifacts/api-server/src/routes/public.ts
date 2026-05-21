@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, conversationsTable, messagesTable } from "@workspace/db";
+import { db, usersTable, conversationsTable, messagesTable, chatLinksTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
@@ -11,6 +11,10 @@ function generateToken(): string {
 
 router.get("/:handle", async (req, res) => {
   const { handle } = req.params;
+  if (handle === "conversations" || handle === "link") {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
   const [user] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
   if (!user) {
     res.status(404).json({ error: "User not found" });
@@ -26,7 +30,11 @@ router.get("/:handle", async (req, res) => {
 
 router.post("/:handle/contact", async (req, res) => {
   const { handle } = req.params;
-  const { guestName, guestEmail, subject, message } = req.body;
+  if (handle === "conversations" || handle === "link") {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const { guestName, message } = req.body;
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
   if (!user) {
@@ -35,11 +43,75 @@ router.post("/:handle/contact", async (req, res) => {
   }
 
   const token = generateToken();
+  const subject = `Chat with ${guestName}`;
 
   const [conv] = await db.insert(conversationsTable).values({
     ownerId: user.id,
     guestName,
-    guestEmail: guestEmail || null,
+    guestEmail: null,
+    subject,
+    token,
+    status: "open",
+    isRead: false,
+  }).returning();
+
+  await db.insert(messagesTable).values({
+    conversationId: conv.id,
+    senderType: "guest",
+    content: message,
+  });
+
+  res.status(201).json({
+    id: conv.id,
+    token: conv.token,
+    subject: conv.subject,
+    createdAt: conv.createdAt.toISOString(),
+  });
+});
+
+router.get("/link/:slug", async (req, res) => {
+  const { slug } = req.params;
+  const [link] = await db.select().from(chatLinksTable).where(eq(chatLinksTable.slug, slug));
+  if (!link) {
+    res.status(404).json({ error: "Link not found" });
+    return;
+  }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, link.ownerId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  res.json({
+    handle: user.handle,
+    displayName: user.displayName,
+    bio: user.bio ?? null,
+    avatarUrl: user.avatarUrl ?? null,
+  });
+});
+
+router.post("/link/:slug/contact", async (req, res) => {
+  const { slug } = req.params;
+  const { guestName, message } = req.body;
+
+  const [link] = await db.select().from(chatLinksTable).where(eq(chatLinksTable.slug, slug));
+  if (!link) {
+    res.status(404).json({ error: "Link not found" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, link.ownerId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const token = generateToken();
+  const subject = `Chat with ${guestName}`;
+
+  const [conv] = await db.insert(conversationsTable).values({
+    ownerId: user.id,
+    guestName,
+    guestEmail: null,
     subject,
     token,
     status: "open",

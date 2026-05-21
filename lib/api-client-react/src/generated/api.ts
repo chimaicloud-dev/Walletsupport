@@ -20,9 +20,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ChatLink,
   ContactInput,
   Conversation,
   ConversationStats,
+  CreateLinkInput,
+  DeleteLink200,
   GuestConversation,
   GuestConversationDetail,
   GuestMessageInput,
@@ -280,7 +283,7 @@ export const getGetUserByHandleUrl = (handle: string,) => {
 }
 
 /**
- * @summary Get public user profile by handle (for visitors)
+ * @summary Get public user profile by handle
  */
 export const getUserByHandle = async (handle: string, options?: RequestInit): Promise<PublicProfile> => {
 
@@ -327,7 +330,7 @@ export type GetUserByHandleQueryError = ErrorType<void>
 
 
 /**
- * @summary Get public user profile by handle (for visitors)
+ * @summary Get public user profile by handle
  */
 
 export function useGetUserByHandle<TData = Awaited<ReturnType<typeof getUserByHandle>>, TError = ErrorType<void>>(
@@ -347,6 +350,224 @@ export function useGetUserByHandle<TData = Awaited<ReturnType<typeof getUserByHa
 
 
 
+
+export const getListLinksUrl = () => {
+
+
+
+
+  return `/api/links`
+}
+
+/**
+ * @summary List all custom chat links for authenticated user
+ */
+export const listLinks = async ( options?: RequestInit): Promise<ChatLink[]> => {
+
+  return customFetch<ChatLink[]>(getListLinksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLinksQueryKey = () => {
+    return [
+    `/api/links`
+    ] as const;
+    }
+
+
+export const getListLinksQueryOptions = <TData = Awaited<ReturnType<typeof listLinks>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLinks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLinksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLinks>>> = ({ signal }) => listLinks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLinks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLinksQueryResult = NonNullable<Awaited<ReturnType<typeof listLinks>>>
+export type ListLinksQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all custom chat links for authenticated user
+ */
+
+export function useListLinks<TData = Awaited<ReturnType<typeof listLinks>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLinks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLinksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateLinkUrl = () => {
+
+
+
+
+  return `/api/links`
+}
+
+/**
+ * @summary Create a new custom chat link
+ */
+export const createLink = async (createLinkInput: CreateLinkInput, options?: RequestInit): Promise<ChatLink> => {
+
+  return customFetch<ChatLink>(getCreateLinkUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createLinkInput,)
+  }
+);}
+
+
+
+
+export const getCreateLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLink>>, TError,{data: BodyType<CreateLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLink>>, TError,{data: BodyType<CreateLinkInput>}, TContext> => {
+
+const mutationKey = ['createLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLink>>, {data: BodyType<CreateLinkInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLink(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLinkMutationResult = NonNullable<Awaited<ReturnType<typeof createLink>>>
+    export type CreateLinkMutationBody = BodyType<CreateLinkInput>
+    export type CreateLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a new custom chat link
+ */
+export const useCreateLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLink>>, TError,{data: BodyType<CreateLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLink>>,
+        TError,
+        {data: BodyType<CreateLinkInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLinkMutationOptions(options));
+    }
+
+export const getDeleteLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/links/${id}`
+}
+
+/**
+ * @summary Delete a custom chat link
+ */
+export const deleteLink = async (id: number, options?: RequestInit): Promise<DeleteLink200> => {
+
+  return customFetch<DeleteLink200>(getDeleteLinkUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLink>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLink>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLinkMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLink>>>
+
+    export type DeleteLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a custom chat link
+ */
+export const useDeleteLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLink>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteLinkMutationOptions(options));
+    }
 
 export const getListConversationsUrl = () => {
 
@@ -381,7 +602,7 @@ export const getListConversationsQueryKey = () => {
     }
 
 
-export const getListConversationsQueryOptions = <TData = Awaited<ReturnType<typeof listConversations>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListConversationsQueryOptions = <TData = Awaited<ReturnType<typeof listConversations>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -400,14 +621,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListConversationsQueryResult = NonNullable<Awaited<ReturnType<typeof listConversations>>>
-export type ListConversationsQueryError = ErrorType<void>
+export type ListConversationsQueryError = ErrorType<unknown>
 
 
 /**
  * @summary List all conversations for authenticated user
  */
 
-export function useListConversations<TData = Awaited<ReturnType<typeof listConversations>>, TError = ErrorType<void>>(
+export function useListConversations<TData = Awaited<ReturnType<typeof listConversations>>, TError = ErrorType<unknown>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -434,7 +655,7 @@ export const getGetConversationUrl = (id: number,) => {
 }
 
 /**
- * @summary Get a conversation by ID (authenticated user must own it)
+ * @summary Get a conversation by ID
  */
 export const getConversation = async (id: number, options?: RequestInit): Promise<Conversation> => {
 
@@ -481,7 +702,7 @@ export type GetConversationQueryError = ErrorType<void>
 
 
 /**
- * @summary Get a conversation by ID (authenticated user must own it)
+ * @summary Get a conversation by ID
  */
 
 export function useGetConversation<TData = Awaited<ReturnType<typeof getConversation>>, TError = ErrorType<void>>(
@@ -658,7 +879,7 @@ export const getSendMessageUrl = (id: number,) => {
 }
 
 /**
- * @summary Send a message in a conversation (authenticated user replies)
+ * @summary Send a message in a conversation (owner reply)
  */
 export const sendMessage = async (id: number,
     messageInput: MessageInput, options?: RequestInit): Promise<Message> => {
@@ -708,7 +929,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SendMessageMutationError = ErrorType<unknown>
 
     /**
- * @summary Send a message in a conversation (authenticated user replies)
+ * @summary Send a message in a conversation (owner reply)
  */
 export const useSendMessage = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: number;data: BodyType<MessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -730,7 +951,7 @@ export const getStartConversationUrl = (handle: string,) => {
 }
 
 /**
- * @summary Start a new conversation with a user via their public link (no auth required)
+ * @summary Start a conversation via handle (no auth)
  */
 export const startConversation = async (handle: string,
     contactInput: ContactInput, options?: RequestInit): Promise<GuestConversation> => {
@@ -780,7 +1001,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type StartConversationMutationError = ErrorType<unknown>
 
     /**
- * @summary Start a new conversation with a user via their public link (no auth required)
+ * @summary Start a conversation via handle (no auth)
  */
 export const useStartConversation = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startConversation>>, TError,{handle: string;data: BodyType<ContactInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -793,6 +1014,155 @@ export const useStartConversation = <TError = ErrorType<unknown>,
       return useMutation(getStartConversationMutationOptions(options));
     }
 
+export const getStartConversationByLinkUrl = (slug: string,) => {
+
+
+
+
+  return `/api/public/link/${slug}/contact`
+}
+
+/**
+ * @summary Start a conversation via custom link slug (no auth)
+ */
+export const startConversationByLink = async (slug: string,
+    contactInput: ContactInput, options?: RequestInit): Promise<GuestConversation> => {
+
+  return customFetch<GuestConversation>(getStartConversationByLinkUrl(slug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      contactInput,)
+  }
+);}
+
+
+
+
+export const getStartConversationByLinkMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startConversationByLink>>, TError,{slug: string;data: BodyType<ContactInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startConversationByLink>>, TError,{slug: string;data: BodyType<ContactInput>}, TContext> => {
+
+const mutationKey = ['startConversationByLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startConversationByLink>>, {slug: string;data: BodyType<ContactInput>}> = (props) => {
+          const {slug,data} = props ?? {};
+
+          return  startConversationByLink(slug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartConversationByLinkMutationResult = NonNullable<Awaited<ReturnType<typeof startConversationByLink>>>
+    export type StartConversationByLinkMutationBody = BodyType<ContactInput>
+    export type StartConversationByLinkMutationError = ErrorType<void>
+
+    /**
+ * @summary Start a conversation via custom link slug (no auth)
+ */
+export const useStartConversationByLink = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startConversationByLink>>, TError,{slug: string;data: BodyType<ContactInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startConversationByLink>>,
+        TError,
+        {slug: string;data: BodyType<ContactInput>},
+        TContext
+      > => {
+      return useMutation(getStartConversationByLinkMutationOptions(options));
+    }
+
+export const getGetLinkProfileUrl = (slug: string,) => {
+
+
+
+
+  return `/api/public/link/${slug}`
+}
+
+/**
+ * @summary Get public profile for a custom link slug
+ */
+export const getLinkProfile = async (slug: string, options?: RequestInit): Promise<PublicProfile> => {
+
+  return customFetch<PublicProfile>(getGetLinkProfileUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLinkProfileQueryKey = (slug: string,) => {
+    return [
+    `/api/public/link/${slug}`
+    ] as const;
+    }
+
+
+export const getGetLinkProfileQueryOptions = <TData = Awaited<ReturnType<typeof getLinkProfile>>, TError = ErrorType<void>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLinkProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLinkProfileQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLinkProfile>>> = ({ signal }) => getLinkProfile(slug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(slug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLinkProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLinkProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getLinkProfile>>>
+export type GetLinkProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get public profile for a custom link slug
+ */
+
+export function useGetLinkProfile<TData = Awaited<ReturnType<typeof getLinkProfile>>, TError = ErrorType<void>>(
+ slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLinkProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLinkProfileQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getGetGuestConversationUrl = (token: string,) => {
 
 
@@ -802,7 +1172,7 @@ export const getGetGuestConversationUrl = (token: string,) => {
 }
 
 /**
- * @summary Get conversation as a guest via token
+ * @summary Get conversation as guest via token
  */
 export const getGuestConversation = async (token: string, options?: RequestInit): Promise<GuestConversationDetail> => {
 
@@ -849,7 +1219,7 @@ export type GetGuestConversationQueryError = ErrorType<void>
 
 
 /**
- * @summary Get conversation as a guest via token
+ * @summary Get conversation as guest via token
  */
 
 export function useGetGuestConversation<TData = Awaited<ReturnType<typeof getGuestConversation>>, TError = ErrorType<void>>(
@@ -879,7 +1249,7 @@ export const getSendGuestMessageUrl = (token: string,) => {
 }
 
 /**
- * @summary Guest sends a follow-up message in their conversation
+ * @summary Guest sends a follow-up message
  */
 export const sendGuestMessage = async (token: string,
     guestMessageInput: GuestMessageInput, options?: RequestInit): Promise<Message> => {
@@ -929,7 +1299,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SendGuestMessageMutationError = ErrorType<unknown>
 
     /**
- * @summary Guest sends a follow-up message in their conversation
+ * @summary Guest sends a follow-up message
  */
 export const useSendGuestMessage = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendGuestMessage>>, TError,{token: string;data: BodyType<GuestMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -951,7 +1321,7 @@ export const getGetConversationStatsUrl = () => {
 }
 
 /**
- * @summary Get inbox stats (total, unread, replied counts)
+ * @summary Get inbox stats
  */
 export const getConversationStats = async ( options?: RequestInit): Promise<ConversationStats> => {
 
@@ -998,7 +1368,7 @@ export type GetConversationStatsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get inbox stats (total, unread, replied counts)
+ * @summary Get inbox stats
  */
 
 export function useGetConversationStats<TData = Awaited<ReturnType<typeof getConversationStats>>, TError = ErrorType<unknown>>(

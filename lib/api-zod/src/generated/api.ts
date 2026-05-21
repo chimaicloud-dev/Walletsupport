@@ -57,7 +57,7 @@ export const UpsertMeResponse = zod.object({
 
 
 /**
- * @summary Get public user profile by handle (for visitors)
+ * @summary Get public user profile by handle
  */
 export const GetUserByHandleParams = zod.object({
   "handle": zod.coerce.string()
@@ -68,6 +68,46 @@ export const GetUserByHandleResponse = zod.object({
   "displayName": zod.string(),
   "bio": zod.string().nullish(),
   "avatarUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary List all custom chat links for authenticated user
+ */
+export const ListLinksResponseItem = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "label": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListLinksResponse = zod.array(ListLinksResponseItem)
+
+
+/**
+ * @summary Create a new custom chat link
+ */
+export const createLinkBodySlugMin = 3;
+export const createLinkBodySlugMax = 50;
+
+export const createLinkBodyLabelMax = 80;
+
+
+
+export const CreateLinkBody = zod.object({
+  "slug": zod.string().min(createLinkBodySlugMin).max(createLinkBodySlugMax),
+  "label": zod.string().min(1).max(createLinkBodyLabelMax)
+})
+
+
+/**
+ * @summary Delete a custom chat link
+ */
+export const DeleteLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteLinkResponse = zod.object({
+  "success": zod.boolean()
 })
 
 
@@ -89,7 +129,7 @@ export const ListConversationsResponse = zod.array(ListConversationsResponseItem
 
 
 /**
- * @summary Get a conversation by ID (authenticated user must own it)
+ * @summary Get a conversation by ID
  */
 export const GetConversationParams = zod.object({
   "id": zod.coerce.number()
@@ -146,7 +186,7 @@ export const ListMessagesResponse = zod.array(ListMessagesResponseItem)
 
 
 /**
- * @summary Send a message in a conversation (authenticated user replies)
+ * @summary Send a message in a conversation (owner reply)
  */
 export const SendMessageParams = zod.object({
   "id": zod.coerce.number()
@@ -161,7 +201,7 @@ export const SendMessageBody = zod.object({
 
 
 /**
- * @summary Start a new conversation with a user via their public link (no auth required)
+ * @summary Start a conversation via handle (no auth)
  */
 export const StartConversationParams = zod.object({
   "handle": zod.coerce.string()
@@ -171,17 +211,46 @@ export const StartConversationParams = zod.object({
 
 
 
-
 export const StartConversationBody = zod.object({
   "guestName": zod.string().min(1),
-  "guestEmail": zod.string().optional(),
-  "subject": zod.string().min(1),
   "message": zod.string().min(1)
 })
 
 
 /**
- * @summary Get conversation as a guest via token
+ * @summary Start a conversation via custom link slug (no auth)
+ */
+export const StartConversationByLinkParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+
+
+
+
+export const StartConversationByLinkBody = zod.object({
+  "guestName": zod.string().min(1),
+  "message": zod.string().min(1)
+})
+
+
+/**
+ * @summary Get public profile for a custom link slug
+ */
+export const GetLinkProfileParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetLinkProfileResponse = zod.object({
+  "handle": zod.string(),
+  "displayName": zod.string(),
+  "bio": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary Get conversation as guest via token
  */
 export const GetGuestConversationParams = zod.object({
   "token": zod.coerce.string()
@@ -204,7 +273,7 @@ export const GetGuestConversationResponse = zod.object({
 
 
 /**
- * @summary Guest sends a follow-up message in their conversation
+ * @summary Guest sends a follow-up message
  */
 export const SendGuestMessageParams = zod.object({
   "token": zod.coerce.string()
@@ -219,7 +288,7 @@ export const SendGuestMessageBody = zod.object({
 
 
 /**
- * @summary Get inbox stats (total, unread, replied counts)
+ * @summary Get inbox stats
  */
 export const GetConversationStatsResponse = zod.object({
   "total": zod.number(),

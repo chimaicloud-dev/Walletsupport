@@ -6,9 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ContactInput {
-  /** @minLength 1 */
-  guestName: string;
-  /** @minLength 1 */
-  message: string;
-}
+export type DeleteLink200 = {
+  success: boolean;
+};

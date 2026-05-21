@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import {
-  useGetUserByHandle,
-  getGetUserByHandleQueryKey,
-  useStartConversation,
+  useGetLinkProfile,
+  getGetLinkProfileQueryKey,
+  useStartConversationByLink,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Send, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export default function PublicChatPage() {
+export default function PublicLinkChatPage() {
   const params = useParams();
-  const handle = params.handle as string;
+  const slug = params.slug as string;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -21,18 +21,18 @@ export default function PublicChatPage() {
   const [guestName, setGuestName] = useState("");
   const [message, setMessage] = useState("");
 
-  const { data: profile, isLoading, error } = useGetUserByHandle(handle, {
+  const { data: profile, isLoading, error } = useGetLinkProfile(slug, {
     query: {
-      enabled: !!handle,
-      queryKey: getGetUserByHandleQueryKey(handle),
+      enabled: !!slug,
+      queryKey: getGetLinkProfileQueryKey(slug),
       retry: false,
     },
   });
 
-  const startConversation = useStartConversation({
+  const startConversation = useStartConversationByLink({
     mutation: {
       onSuccess: (data) => {
-        setLocation(`/chat/${handle}/thread/${data.token}`);
+        setLocation(`/c/${slug}/thread/${data.token}`);
       },
       onError: () => {
         toast({ variant: "destructive", title: "Failed to start chat. Please try again." });
@@ -50,7 +50,7 @@ export default function PublicChatPage() {
     e.preventDefault();
     if (!message.trim()) return;
     startConversation.mutate({
-      handle,
+      slug,
       data: { guestName: guestName.trim(), message: message.trim() },
     });
   };
@@ -103,7 +103,6 @@ export default function PublicChatPage() {
 
       {/* Chat area */}
       <div className="flex-1 overflow-auto p-4 flex flex-col justify-end gap-3">
-        {/* Welcome bubble */}
         <div className="flex justify-start">
           <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] shadow-sm">
             <p className="text-sm text-gray-800 leading-relaxed">

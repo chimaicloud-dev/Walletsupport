@@ -8,13 +8,10 @@ servers:
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: users
-    description: User profile operations
   - name: conversations
-    description: Conversation operations
   - name: messages
-    description: Message operations
+  - name: links
 paths:
   /healthz:
     get:
@@ -65,7 +62,7 @@ paths:
     get:
       operationId: getUserByHandle
       tags: [users]
-      summary: Get public user profile by handle (for visitors)
+      summary: Get public user profile by handle
       parameters:
         - name: handle
           in: path
@@ -82,6 +79,62 @@ paths:
         "404":
           description: Not found
 
+  /links:
+    get:
+      operationId: listLinks
+      tags: [links]
+      summary: List all custom chat links for authenticated user
+      responses:
+        "200":
+          description: List of links
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatLink"
+    post:
+      operationId: createLink
+      tags: [links]
+      summary: Create a new custom chat link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLinkInput"
+      responses:
+        "201":
+          description: Created link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatLink"
+
+  /links/{id}:
+    delete:
+      operationId: deleteLink
+      tags: [links]
+      summary: Delete a custom chat link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
+
   /conversations:
     get:
       operationId: listConversations
@@ -96,14 +149,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Conversation"
-        "401":
-          description: Unauthorized
 
   /conversations/{id}:
     get:
       operationId: getConversation
       tags: [conversations]
-      summary: Get a conversation by ID (authenticated user must own it)
+      summary: Get a conversation by ID
       parameters:
         - name: id
           in: path
@@ -162,7 +213,7 @@ paths:
     post:
       operationId: sendMessage
       tags: [messages]
-      summary: Send a message in a conversation (authenticated user replies)
+      summary: Send a message in a conversation (owner reply)
       parameters:
         - name: id
           in: path
@@ -187,7 +238,7 @@ paths:
     post:
       operationId: startConversation
       tags: [conversations]
-      summary: Start a new conversation with a user via their public link (no auth required)
+      summary: Start a conversation via handle (no auth)
       parameters:
         - name: handle
           in: path
@@ -208,11 +259,59 @@ paths:
               schema:
                 $ref: "#/components/schemas/GuestConversation"
 
+  /public/link/{slug}/contact:
+    post:
+      operationId: startConversationByLink
+      tags: [conversations]
+      summary: Start a conversation via custom link slug (no auth)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactInput"
+      responses:
+        "201":
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestConversation"
+        "404":
+          description: Link not found
+
+  /public/link/{slug}:
+    get:
+      operationId: getLinkProfile
+      tags: [links]
+      summary: Get public profile for a custom link slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicProfile"
+        "404":
+          description: Not found
+
   /public/conversations/{token}:
     get:
       operationId: getGuestConversation
       tags: [conversations]
-      summary: Get conversation as a guest via token
+      summary: Get conversation as guest via token
       parameters:
         - name: token
           in: path
@@ -221,7 +320,7 @@ paths:
             type: string
       responses:
         "200":
-          description: Guest conversation with messages
+          description: Guest conversation
           content:
             application/json:
               schema:
@@ -233,7 +332,7 @@ paths:
     post:
       operationId: sendGuestMessage
       tags: [messages]
-      summary: Guest sends a follow-up message in their conversation
+      summary: Guest sends a follow-up message
       parameters:
         - name: token
           in: path
@@ -258,7 +357,7 @@ paths:
     get:
       operationId: getConversationStats
       tags: [conversations]
-      summary: Get inbox stats (total, unread, replied counts)
+      summary: Get inbox stats
       responses:
         "200":
           description: Stats
@@ -274,8 +373,7 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     UserProfile:
       type: object
@@ -294,12 +392,7 @@ components:
           type: ["string", "null"]
         createdAt:
           type: string
-      required:
-        - id
-        - clerkId
-        - handle
-        - displayName
-        - createdAt
+      required: [id, clerkId, handle, displayName, createdAt]
 
     UserProfileInput:
       type: object
@@ -313,9 +406,7 @@ components:
           minLength: 1
         bio:
           type: string
-      required:
-        - handle
-        - displayName
+      required: [handle, displayName]
 
     PublicProfile:
       type: object
@@ -328,9 +419,33 @@ components:
           type: ["string", "null"]
         avatarUrl:
           type: ["string", "null"]
-      required:
-        - handle
-        - displayName
+      required: [handle, displayName]
+
+    ChatLink:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        label:
+          type: string
+        createdAt:
+          type: string
+      required: [id, slug, label, createdAt]
+
+    CreateLinkInput:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 3
+          maxLength: 50
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+      required: [slug, label]
 
     Conversation:
       type: object
@@ -354,15 +469,7 @@ components:
           type: integer
         createdAt:
           type: string
-      required:
-        - id
-        - guestName
-        - subject
-        - status
-        - isRead
-        - lastMessageAt
-        - messageCount
-        - createdAt
+      required: [id, guestName, subject, status, isRead, lastMessageAt, messageCount, createdAt]
 
     Message:
       type: object
@@ -378,12 +485,7 @@ components:
           type: string
         createdAt:
           type: string
-      required:
-        - id
-        - conversationId
-        - senderType
-        - content
-        - createdAt
+      required: [id, conversationId, senderType, content, createdAt]
 
     MessageInput:
       type: object
@@ -391,8 +493,7 @@ components:
         content:
           type: string
           minLength: 1
-      required:
-        - content
+      required: [content]
 
     ContactInput:
       type: object
@@ -400,18 +501,10 @@ components:
         guestName:
           type: string
           minLength: 1
-        guestEmail:
-          type: string
-        subject:
-          type: string
-          minLength: 1
         message:
           type: string
           minLength: 1
-      required:
-        - guestName
-        - subject
-        - message
+      required: [guestName, message]
 
     GuestConversation:
       type: object
@@ -424,11 +517,7 @@ components:
           type: string
         createdAt:
           type: string
-      required:
-        - id
-        - token
-        - subject
-        - createdAt
+      required: [id, token, subject, createdAt]
 
     GuestConversationDetail:
       type: object
@@ -447,13 +536,7 @@ components:
             $ref: "#/components/schemas/Message"
         createdAt:
           type: string
-      required:
-        - id
-        - subject
-        - guestName
-        - ownerDisplayName
-        - messages
-        - createdAt
+      required: [id, subject, guestName, ownerDisplayName, messages, createdAt]
 
     GuestMessageInput:
       type: object
@@ -461,8 +544,7 @@ components:
         content:
           type: string
           minLength: 1
-      required:
-        - content
+      required: [content]
 
     ConversationStats:
       type: object
@@ -475,8 +557,4 @@ components:
           type: integer
         closed:
           type: integer
-      required:
-        - total
-        - unread
-        - open
-        - closed
+      required: [total, unread, open, closed]

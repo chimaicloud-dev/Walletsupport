@@ -13,10 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
-export default function PublicThreadPage() {
+export default function PublicLinkThreadPage() {
   const params = useParams();
   const token = params.token as string;
-  const handle = params.handle as string;
+  const slug = params.slug as string;
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -84,7 +84,7 @@ export default function PublicThreadPage() {
         </p>
         <Button
           className="bg-[#1e3a5f] hover:bg-[#1e3a5f]/90"
-          onClick={() => setLocation(`/chat/${handle}`)}
+          onClick={() => setLocation(`/c/${slug}`)}
         >
           Start a new chat
         </Button>
@@ -99,7 +99,7 @@ export default function PublicThreadPage() {
       {/* Header */}
       <div className="bg-[#1e3a5f] px-4 py-3 flex items-center gap-3 shadow-md shrink-0">
         <button
-          onClick={() => setLocation(`/chat/${handle}`)}
+          onClick={() => setLocation(`/c/${slug}`)}
           className="text-white/70 hover:text-white mr-1 shrink-0"
           data-testid="button-back"
         >
@@ -121,7 +121,6 @@ export default function PublicThreadPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-3">
-        {/* Auto welcome */}
         <div className="flex justify-start">
           <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] shadow-sm">
             <p className="text-sm text-gray-800 leading-relaxed">
@@ -133,10 +132,7 @@ export default function PublicThreadPage() {
         {conversation.messages?.map((msg) => {
           const isGuest = msg.senderType === "guest";
           return (
-            <div
-              key={msg.id}
-              className={`flex ${isGuest ? "justify-end" : "justify-start"}`}
-            >
+            <div key={msg.id} className={`flex ${isGuest ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
                   isGuest

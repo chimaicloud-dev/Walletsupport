@@ -41,6 +41,26 @@ export interface PublicProfile {
   avatarUrl?: string | null;
 }
 
+export interface ChatLink {
+  id: number;
+  slug: string;
+  label: string;
+  createdAt: string;
+}
+
+export interface CreateLinkInput {
+  /**
+     * @minLength 3
+     * @maxLength 50
+     */
+  slug: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  label: string;
+}
+
 export type ConversationStatus = typeof ConversationStatus[keyof typeof ConversationStatus];
 
 
@@ -86,9 +106,6 @@ export interface MessageInput {
 export interface ContactInput {
   /** @minLength 1 */
   guestName: string;
-  guestEmail?: string;
-  /** @minLength 1 */
-  subject: string;
   /** @minLength 1 */
   message: string;
 }
@@ -120,4 +137,8 @@ export interface ConversationStats {
   open: number;
   closed: number;
 }
+
+export type DeleteLink200 = {
+  success: boolean;
+};
 

@@ -6,10 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './chatLink';
 export * from './contactInput';
 export * from './conversation';
 export * from './conversationStats';
 export * from './conversationStatus';
+export * from './createLinkInput';
+export * from './deleteLink200';
 export * from './guestConversation';
 export * from './guestConversationDetail';
 export * from './guestMessageInput';
