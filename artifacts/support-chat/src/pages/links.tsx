@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, CheckCircle2, Trash2, Plus, Link as LinkIcon, Pencil } from "lucide-react";
+import { Copy, CheckCircle2, Trash2, Plus, Link as LinkIcon, Pencil, Mail } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,7 @@ export default function LinksPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [emailCopiedId, setEmailCopiedId] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingLink, setEditingLink] = useState<{ id: number; customName: string | null; label: string } | null>(null);
 
@@ -111,6 +112,33 @@ export default function LinksPage() {
     setCopiedId(id);
     toast({ title: "Link copied to clipboard" });
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleCopyEmail = (id: number, slug: string, displayName: string) => {
+    const url = getLinkUrl(slug);
+    const avatarUrl = `${window.location.origin}${basePath}/bot-avatar.svg`;
+    const snippet = `<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,sans-serif;max-width:380px;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
+  <tr>
+    <td style="background:#1e3a5f;padding:24px;text-align:center;">
+      <img src="${avatarUrl}" width="72" height="72" alt="Support" style="border-radius:50%;display:block;margin:0 auto;" />
+    </td>
+  </tr>
+  <tr>
+    <td style="background:#ffffff;padding:24px;text-align:center;">
+      <p style="margin:0 0 4px 0;font-size:20px;font-weight:bold;color:#111111;">${displayName}</p>
+      <p style="margin:0 0 20px 0;font-size:14px;color:#6b7280;">Live support chat — reply within minutes</p>
+      <a href="${url}" style="display:inline-block;background:#F0B429;color:#111111;padding:13px 32px;border-radius:99px;font-size:15px;font-weight:bold;text-decoration:none;">Chat Now &rarr;</a>
+      <p style="margin:16px 0 0 0;font-size:11px;color:#9ca3af;">Or copy this link: ${url}</p>
+    </td>
+  </tr>
+</table>`;
+    navigator.clipboard.writeText(snippet);
+    setEmailCopiedId(id);
+    toast({
+      title: "Email snippet copied",
+      description: "Paste it into Gmail, Apple Mail, or Outlook to send a button-style link.",
+    });
+    setTimeout(() => setEmailCopiedId(null), 3000);
   };
 
   const onSubmit = (data: CreateLinkValues) => {
@@ -186,6 +214,21 @@ export default function LinksPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopyEmail(link.id, link.slug, link.customName?.trim() || link.label)}
+                        className={`gap-1.5 ${emailCopiedId === link.id ? "border-green-300 text-green-700" : ""}`}
+                        data-testid={`button-email-link-${link.id}`}
+                        title="Copy HTML email snippet"
+                      >
+                        {emailCopiedId === link.id ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                        ) : (
+                          <Mail className="w-3.5 h-3.5" />
+                        )}
+                        {emailCopiedId === link.id ? "Copied!" : "Email"}
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
