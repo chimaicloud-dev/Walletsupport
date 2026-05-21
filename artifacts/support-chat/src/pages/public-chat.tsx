@@ -8,8 +8,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, MessageSquare } from "lucide-react";
+import { Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+function BotAvatar({ size = 48 }: { size?: number }) {
+  return (
+    <img
+      src="/bot-avatar.svg"
+      alt="Support Bot"
+      width={size}
+      height={size}
+      style={{ borderRadius: "50%" }}
+    />
+  );
+}
 
 export default function PublicChatPage() {
   const params = useParams();
@@ -57,12 +69,13 @@ export default function PublicChatPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-[#f5f5f5]">
-        <div className="bg-[#1e3a5f] h-16 flex items-center px-4 gap-3">
-          <Skeleton className="w-9 h-9 rounded-full bg-white/20" />
-          <div className="space-y-1">
-            <Skeleton className="h-4 w-28 bg-white/20" />
-            <Skeleton className="h-3 w-20 bg-white/20" />
+      <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
+        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+          <Skeleton className="w-8 h-8 rounded-full" />
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <div className="space-y-1 flex-1">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-20" />
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
@@ -74,12 +87,10 @@ export default function PublicChatPage() {
 
   if (error || !profile) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-[#f5f5f5] items-center justify-center p-6">
-        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow">
-          <MessageSquare className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h2 className="text-xl font-bold mb-2">Link not found</h2>
-        <p className="text-muted-foreground text-sm text-center">
+      <div className="flex flex-col h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
+        <BotAvatar size={72} />
+        <h2 className="text-xl font-bold mt-4 mb-2">Link not found</h2>
+        <p className="text-gray-500 text-sm text-center">
           This support link does not exist or has been removed.
         </p>
       </div>
@@ -87,25 +98,26 @@ export default function PublicChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#f5f5f5]">
-      {/* Header */}
-      <div className="bg-[#1e3a5f] px-4 py-3 flex items-center gap-3 shadow-md shrink-0">
-        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-          <MessageSquare className="w-5 h-5 text-white" />
+    <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
+      {/* Header — white Binance-style */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shadow-sm shrink-0">
+        <div className="shrink-0">
+          <BotAvatar size={44} />
         </div>
-        <div className="min-w-0">
-          <p className="text-white font-semibold text-sm leading-tight truncate">
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-gray-900 text-base leading-tight truncate">
             {profile.displayName}
           </p>
-          <p className="text-white/60 text-xs">Support</p>
+          <p className="text-gray-500 text-xs mt-0.5">Support</p>
         </div>
       </div>
 
       {/* Chat area */}
       <div className="flex-1 overflow-auto p-4 flex flex-col justify-end gap-3">
         {/* Welcome bubble */}
-        <div className="flex justify-start">
-          <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] shadow-sm">
+        <div className="flex justify-start items-end gap-2">
+          <BotAvatar size={28} />
+          <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 max-w-[82%] shadow-sm">
             <p className="text-sm text-gray-800 leading-relaxed">
               Welcome to {profile.displayName}'s support.
               {profile.bio ? ` ${profile.bio}` : " How can I help you today?"}
@@ -114,15 +126,16 @@ export default function PublicChatPage() {
         </div>
 
         {step === "name" && (
-          <div className="flex justify-start">
-            <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] shadow-sm">
+          <div className="flex justify-start items-end gap-2">
+            <BotAvatar size={28} />
+            <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 max-w-[82%] shadow-sm">
               <p className="text-sm text-gray-800 mb-3">Before we start, what's your name?</p>
               <form onSubmit={handleNameSubmit} className="flex gap-2">
                 <Input
                   value={guestName}
                   onChange={(e) => setGuestName(e.target.value)}
                   placeholder="Enter your name"
-                  className="h-9 text-sm"
+                  className="h-9 text-sm rounded-full border-gray-200 bg-gray-50"
                   autoFocus
                   data-testid="input-guest-name"
                 />
@@ -130,7 +143,7 @@ export default function PublicChatPage() {
                   type="submit"
                   size="sm"
                   disabled={!guestName.trim()}
-                  className="bg-[#1e3a5f] hover:bg-[#1e3a5f]/90 shrink-0"
+                  className="bg-[#F0B429] hover:bg-[#e0a820] text-gray-900 font-semibold shrink-0 rounded-full px-4"
                   data-testid="button-name-submit"
                 >
                   Next
@@ -143,12 +156,13 @@ export default function PublicChatPage() {
         {step === "message" && (
           <>
             <div className="flex justify-end">
-              <div className="bg-[#f0b429] rounded-2xl rounded-br-sm px-4 py-3 max-w-[85%] shadow-sm">
+              <div className="bg-[#F0B429] rounded-2xl rounded-br-sm px-4 py-3 max-w-[82%] shadow-sm">
                 <p className="text-sm text-gray-900 font-medium">{guestName}</p>
               </div>
             </div>
-            <div className="flex justify-start">
-              <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] shadow-sm">
+            <div className="flex justify-start items-end gap-2">
+              <BotAvatar size={28} />
+              <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 max-w-[82%] shadow-sm">
                 <p className="text-sm text-gray-800">
                   Hi {guestName}! What can I help you with?
                 </p>
@@ -160,13 +174,13 @@ export default function PublicChatPage() {
 
       {/* Input bar */}
       {step === "message" && (
-        <div className="shrink-0 bg-white border-t border-gray-200 px-3 py-3">
-          <form onSubmit={handleSend} className="flex items-center gap-2">
+        <div className="shrink-0 bg-white border-t border-gray-100 px-4 py-3">
+          <form onSubmit={handleSend} className="flex items-center gap-3">
             <Input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Ask Question"
-              className="flex-1 h-10 rounded-full border-gray-200 bg-gray-50 text-sm focus-visible:ring-1 focus-visible:ring-[#1e3a5f]/30"
+              className="flex-1 h-10 rounded-full border-gray-200 bg-gray-50 text-sm focus-visible:ring-1 focus-visible:ring-yellow-400/50"
               autoFocus
               data-testid="input-message"
             />
@@ -174,7 +188,7 @@ export default function PublicChatPage() {
               type="submit"
               size="icon"
               disabled={!message.trim() || startConversation.isPending}
-              className="rounded-full w-10 h-10 bg-[#1e3a5f] hover:bg-[#1e3a5f]/90 shrink-0"
+              className="rounded-full w-10 h-10 bg-[#F0B429] hover:bg-[#e0a820] text-gray-900 shrink-0 shadow-sm"
               data-testid="button-send-message"
             >
               <Send className="w-4 h-4" />

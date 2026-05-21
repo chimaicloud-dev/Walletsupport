@@ -7,11 +7,23 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Send, MessageSquare, X, MoreHorizontal } from "lucide-react";
+import { Send, ArrowLeft, Power, MoreHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+
+function BotAvatar({ size = 48 }: { size?: number }) {
+  return (
+    <img
+      src="/bot-avatar.svg"
+      alt="Support Bot"
+      width={size}
+      height={size}
+      style={{ borderRadius: "50%" }}
+    />
+  );
+}
 
 export default function PublicLinkThreadPage() {
   const params = useParams();
@@ -55,17 +67,18 @@ export default function PublicLinkThreadPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-[#f5f5f5]">
-        <div className="bg-[#1e3a5f] h-16 flex items-center px-4 gap-3">
-          <Skeleton className="w-9 h-9 rounded-full bg-white/20" />
-          <div className="space-y-1">
-            <Skeleton className="h-4 w-28 bg-white/20" />
-            <Skeleton className="h-3 w-20 bg-white/20" />
+      <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
+        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+          <Skeleton className="w-8 h-8 rounded-full" />
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <div className="space-y-1 flex-1">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-36" />
           </div>
         </div>
         <div className="flex-1 p-4 space-y-4">
           <div className="flex justify-start"><Skeleton className="h-16 w-64 rounded-2xl" /></div>
-          <div className="flex justify-end"><Skeleton className="h-12 w-52 rounded-2xl" /></div>
+          <div className="flex justify-end"><Skeleton className="h-12 w-52 rounded-2xl bg-yellow-100" /></div>
           <div className="flex justify-start"><Skeleton className="h-20 w-72 rounded-2xl" /></div>
         </div>
       </div>
@@ -74,55 +87,72 @@ export default function PublicLinkThreadPage() {
 
   if (error || !conversation) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-[#f5f5f5] items-center justify-center p-6">
-        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow">
-          <MessageSquare className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h2 className="text-xl font-bold mb-2">Conversation not found</h2>
-        <p className="text-muted-foreground text-sm text-center mb-4">
+      <div className="flex flex-col h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
+        <BotAvatar size={72} />
+        <h2 className="text-xl font-bold mt-4 mb-2">Conversation not found</h2>
+        <p className="text-gray-500 text-sm text-center mb-6">
           This thread may have been removed or the link is invalid.
         </p>
-        <Button
-          className="bg-[#1e3a5f] hover:bg-[#1e3a5f]/90"
+        <button
           onClick={() => setLocation(`/c/${slug}`)}
+          className="bg-[#F0B429] text-gray-900 font-semibold px-6 py-2.5 rounded-full text-sm"
         >
           Start a new chat
-        </Button>
+        </button>
       </div>
     );
   }
 
-  const caseId = `#${String(conversation.id).padStart(9, "0").slice(-9)}`;
+  const caseId = `#${String(conversation.id).padStart(9, "0")}`;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#f5f5f5]">
-      {/* Header */}
-      <div className="bg-[#1e3a5f] px-4 py-3 flex items-center gap-3 shadow-md shrink-0">
+    <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
+      {/* Header — white, Binance-style */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shadow-sm shrink-0">
+        {/* Back arrow */}
         <button
           onClick={() => setLocation(`/c/${slug}`)}
-          className="text-white/70 hover:text-white mr-1 shrink-0"
+          className="text-gray-500 hover:text-gray-800 shrink-0 p-1"
           data-testid="button-back"
         >
-          <X className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-          <MessageSquare className="w-4 h-4 text-white" />
+
+        {/* Bot avatar */}
+        <div className="shrink-0">
+          <BotAvatar size={44} />
         </div>
+
+        {/* Name + case ID */}
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm leading-tight truncate">
+          <p className="font-bold text-gray-900 text-base leading-tight truncate">
             {conversation.ownerDisplayName}
           </p>
-          <p className="text-white/60 text-xs">Case ID {caseId}</p>
+          <p className="text-gray-500 text-xs mt-0.5">Case ID {caseId}</p>
         </div>
-        <button className="text-white/70 hover:text-white shrink-0" data-testid="button-more">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600" data-testid="button-power">
+            <Power className="w-4 h-4" />
+          </button>
+          <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
+            <button className="px-3 py-1.5 text-gray-500 hover:bg-gray-50 flex items-center gap-1 text-xs font-medium border-r border-gray-200" data-testid="button-more">
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            <button className="px-3 py-1.5 text-gray-500 hover:bg-gray-50 flex items-center" data-testid="button-close">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-3">
-        <div className="flex justify-start">
-          <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] shadow-sm">
+        {/* Welcome bubble */}
+        <div className="flex justify-start items-end gap-2">
+          <BotAvatar size={28} />
+          <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 max-w-[80%] shadow-sm">
             <p className="text-sm text-gray-800 leading-relaxed">
               Welcome to customer support. I'm here to help you with your query.
             </p>
@@ -132,19 +162,23 @@ export default function PublicLinkThreadPage() {
         {conversation.messages?.map((msg) => {
           const isGuest = msg.senderType === "guest";
           return (
-            <div key={msg.id} className={`flex ${isGuest ? "justify-end" : "justify-start"}`}>
+            <div
+              key={msg.id}
+              className={`flex items-end gap-2 ${isGuest ? "justify-end" : "justify-start"}`}
+            >
+              {!isGuest && <BotAvatar size={28} />}
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
+                className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
                   isGuest
-                    ? "bg-[#f0b429] rounded-br-sm"
-                    : "bg-white rounded-tl-sm"
+                    ? "bg-[#F0B429] rounded-br-sm"
+                    : "bg-white rounded-bl-sm"
                 }`}
                 data-testid={`message-${msg.id}`}
               >
                 <p className={`text-sm leading-relaxed ${isGuest ? "text-gray-900" : "text-gray-800"}`}>
                   {msg.content}
                 </p>
-                <p className={`text-xs mt-1.5 text-right ${isGuest ? "text-gray-700/70" : "text-gray-400"}`}>
+                <p className={`text-[11px] mt-1.5 text-right ${isGuest ? "text-gray-700/60" : "text-gray-400"}`}>
                   {format(new Date(msg.createdAt), "HH:mm")}
                 </p>
               </div>
@@ -155,13 +189,13 @@ export default function PublicLinkThreadPage() {
       </div>
 
       {/* Input bar */}
-      <div className="shrink-0 bg-white border-t border-gray-200 px-3 py-3">
-        <form onSubmit={handleSend} className="flex items-center gap-2">
+      <div className="shrink-0 bg-white border-t border-gray-100 px-4 py-3">
+        <form onSubmit={handleSend} className="flex items-center gap-3">
           <Input
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Ask Question"
-            className="flex-1 h-10 rounded-full border-gray-200 bg-gray-50 text-sm focus-visible:ring-1 focus-visible:ring-[#1e3a5f]/30"
+            className="flex-1 h-10 rounded-full border-gray-200 bg-gray-50 text-sm focus-visible:ring-1 focus-visible:ring-yellow-400/50"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -174,7 +208,7 @@ export default function PublicLinkThreadPage() {
             type="submit"
             size="icon"
             disabled={!replyContent.trim() || sendGuestMessage.isPending}
-            className="rounded-full w-10 h-10 bg-[#1e3a5f] hover:bg-[#1e3a5f]/90 shrink-0"
+            className="rounded-full w-10 h-10 bg-[#F0B429] hover:bg-[#e0a820] text-gray-900 shrink-0 shadow-sm"
             data-testid="button-send-reply"
           >
             <Send className="w-4 h-4" />
