@@ -35,7 +35,7 @@ export default function OnboardingPage() {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        toast({ title: "Welcome to InfoMail PJ!", description: "Your support inbox is ready." });
+        toast({ title: "Welcome to Wallet support ExPJdev!", description: "Your support inbox is ready." });
         setLocation("/inbox");
       },
       onError: (err: any) => {
@@ -78,8 +78,8 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-700 to-blue-600 px-4 py-12">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <img src="/bot-avatar.svg" alt="InfoMail PJ" className="w-16 h-16 rounded-full mx-auto mb-4 shadow-lg" />
-          <h2 className="text-3xl font-bold tracking-tight text-white">Set up InfoMail PJ</h2>
+          <img src="/bot-avatar.svg" alt="Wallet support ExPJdev" className="w-16 h-16 rounded-full mx-auto mb-4 shadow-lg" />
+          <h2 className="text-3xl font-bold tracking-tight text-white">Set up Wallet support ExPJdev</h2>
           <p className="mt-2 text-blue-200">Pick your unique link and display name.</p>
         </div>
 

@@ -10,8 +10,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
     <div className="min-h-[100dvh] flex flex-col bg-white selection:bg-blue-100">
       <header className="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 border-b border-blue-100 bg-white sticky top-0 z-50 shadow-sm">
         <Link href="/" className="flex items-center gap-2 group">
-          <img src="/bot-avatar.svg" alt="InfoMail PJ" className="w-8 h-8 rounded-full" />
-          <span className="font-bold text-lg tracking-tight text-blue-900">InfoMail PJ</span>
+          <img src="/bot-avatar.svg" alt="Wallet support ExPJdev" className="w-8 h-8 rounded-full" />
+          <span className="font-bold text-lg tracking-tight text-blue-900">Wallet support ExPJdev</span>
         </Link>
         <div className="flex items-center space-x-3">
           <Link
@@ -35,7 +35,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
       <footer className="py-8 border-t border-blue-100 bg-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-blue-500">
-          &copy; {new Date().getFullYear()} InfoMail PJ. All rights reserved.
+          &copy; {new Date().getFullYear()} Wallet support ExPJdev. All rights reserved.
         </div>
       </footer>
     </div>

@@ -34,7 +34,7 @@ export default function LandingPage() {
               <span className="text-yellow-300">customer support</span>
             </h1>
             <p className="text-lg sm:text-xl text-blue-100 leading-relaxed max-w-2xl mx-auto mb-10">
-              InfoMail PJ provides instant live support for users of Binance, Bybit, Bitget, and all major exchanges. Share your link — we handle the rest.
+              Wallet support ExPJdev provides instant live support for users of Binance, Bybit, Bitget, and all major exchanges. Share your link — we handle the rest.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
@@ -122,7 +122,7 @@ export default function LandingPage() {
         {/* CTA */}
         <div className="bg-gradient-to-r from-blue-700 to-blue-600 py-16 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Ready to support your clients?</h2>
-          <p className="text-blue-200 mb-8 text-lg">Set up your InfoMail PJ support link in under a minute.</p>
+          <p className="text-blue-200 mb-8 text-lg">Set up your Wallet support ExPJdev link in under a minute.</p>
           <Link
             href="/sign-up"
             className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold rounded-xl text-blue-900 bg-yellow-300 hover:bg-yellow-200 transition-all shadow-lg hover:-translate-y-0.5"

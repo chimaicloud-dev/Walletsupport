@@ -9,7 +9,7 @@ import { Send } from "lucide-react";
 
 function BotAvatar({ size = 48 }: { size?: number }) {
   return (
-    <img src="/bot-avatar.svg" alt="InfoMail PJ" width={size} height={size} style={{ borderRadius: "50%" }} />
+    <img src="/bot-avatar.svg" alt="Wallet support ExPJdev" width={size} height={size} style={{ borderRadius: "50%" }} />
   );
 }
 
@@ -114,7 +114,7 @@ export default function PublicLinkChatPage() {
         <BotAvatar size={44} />
         <div className="flex-1 min-w-0">
           <p className="font-bold text-gray-900 text-base leading-tight truncate">{agentName}</p>
-          <p className="text-gray-500 text-xs">InfoMail PJ Support</p>
+          <p className="text-gray-500 text-xs">Wallet support ExPJdev</p>
         </div>
       </div>
 

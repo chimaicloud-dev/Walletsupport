@@ -27,8 +27,8 @@ export default function Layout({ children }: LayoutProps) {
       {/* Sidebar — dark navy */}
       <aside className="w-64 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
         <div className="h-16 flex items-center px-5 border-b border-sidebar-border gap-2.5">
-          <img src="/bot-avatar.svg" alt="InfoMail PJ" className="w-8 h-8 rounded-full shrink-0" />
-          <span className="font-bold text-base tracking-tight text-white">InfoMail PJ</span>
+          <img src="/bot-avatar.svg" alt="Wallet support ExPJdev" className="w-8 h-8 rounded-full shrink-0" />
+          <span className="font-bold text-base tracking-tight text-white">Wallet support ExPJdev</span>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
