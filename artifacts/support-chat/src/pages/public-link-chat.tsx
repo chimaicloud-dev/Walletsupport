@@ -1,15 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
-import {
-  useGetLinkProfile,
-  getGetLinkProfileQueryKey,
-  useStartConversationByLink,
-} from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Send } from "lucide-react";
+import { useStartConversationByLink } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { getVisitorName } from "@/utils/notifications";
 
 function BotAvatar({ size = 48 }: { size?: number }) {
   return (
@@ -28,173 +21,80 @@ export default function PublicLinkChatPage() {
   const slug = params.slug as string;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [error, setError] = useState(false);
 
-  const [step, setStep] = useState<"name" | "message">("name");
-  const [guestName, setGuestName] = useState("");
-  const [message, setMessage] = useState("");
-
-  const { data: profile, isLoading, error } = useGetLinkProfile(slug, {
-    query: {
-      enabled: !!slug,
-      queryKey: getGetLinkProfileQueryKey(slug),
-      retry: false,
-    },
-  });
+  const tokenKey = `chat_token_link_${slug}`;
 
   const startConversation = useStartConversationByLink({
     mutation: {
       onSuccess: (data) => {
+        localStorage.setItem(tokenKey, data.token);
         setLocation(`/c/${slug}/thread/${data.token}`);
       },
       onError: () => {
-        toast({ variant: "destructive", title: "Failed to start chat. Please try again." });
+        setError(true);
+        toast({ variant: "destructive", title: "Could not connect to support. Please try again." });
       },
     },
   });
 
-  const handleNameSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!guestName.trim()) return;
-    setStep("message");
-  };
+  useEffect(() => {
+    if (!slug) return;
+    const existing = localStorage.getItem(tokenKey);
+    if (existing) {
+      setLocation(`/c/${slug}/thread/${existing}`);
+      return;
+    }
+    const visitorName = getVisitorName();
+    startConversation.mutate({ slug, data: { guestName: visitorName, message: "" } });
+  }, [slug]);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim()) return;
-    startConversation.mutate({
-      slug,
-      data: { guestName: guestName.trim(), message: message.trim() },
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
-        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-          <Skeleton className="w-10 h-10 rounded-full" />
-          <div className="space-y-1 flex-1">
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-3 w-20" />
-          </div>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <Skeleton className="h-32 w-72 rounded-2xl" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !profile) {
+  if (error) {
     return (
       <div className="flex flex-col h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
         <BotAvatar size={72} />
-        <h2 className="text-xl font-bold mt-4 mb-2">Link not found</h2>
-        <p className="text-gray-500 text-sm text-center">
-          This support link does not exist or has been removed.
+        <h2 className="text-xl font-bold mt-4 mb-2">Connection failed</h2>
+        <p className="text-gray-500 text-sm text-center mb-6">
+          We could not reach support right now. Please try again.
         </p>
+        <button
+          onClick={() => {
+            setError(false);
+            const visitorName = getVisitorName();
+            startConversation.mutate({ slug, data: { guestName: visitorName, message: "" } });
+          }}
+          className="bg-[#F0B429] text-gray-900 font-semibold px-6 py-2.5 rounded-full text-sm"
+        >
+          Try again
+        </button>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
-      {/* Header — white Binance-style */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shadow-sm shrink-0">
-        <div className="shrink-0">
-          <BotAvatar size={44} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-900 text-base leading-tight truncate">
-            {profile.displayName}
-          </p>
-          <p className="text-gray-500 text-xs mt-0.5">Support</p>
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shadow-sm">
+        <BotAvatar size={44} />
+        <div>
+          <p className="font-bold text-gray-900 text-base leading-tight">Customer Support</p>
+          <p className="text-gray-500 text-xs">Connecting…</p>
         </div>
       </div>
-
-      {/* Chat area */}
-      <div className="flex-1 overflow-auto p-4 flex flex-col justify-end gap-3">
-        {/* Welcome bubble */}
-        <div className="flex justify-start items-end gap-2">
-          <BotAvatar size={28} />
-          <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 max-w-[82%] shadow-sm">
-            <p className="text-sm text-gray-800 leading-relaxed">
-              Welcome to {profile.displayName}'s support.
-              {profile.bio ? ` ${profile.bio}` : " How can I help you today?"}
-            </p>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <BotAvatar size={56} />
+          <p className="text-gray-500 text-sm">Starting your chat…</p>
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-2 h-2 bg-[#F0B429] rounded-full animate-bounce"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
           </div>
         </div>
-
-        {step === "name" && (
-          <div className="flex justify-start items-end gap-2">
-            <BotAvatar size={28} />
-            <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 max-w-[82%] shadow-sm">
-              <p className="text-sm text-gray-800 mb-3">Before we start, what's your name?</p>
-              <form onSubmit={handleNameSubmit} className="flex gap-2">
-                <Input
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  placeholder="Enter your name"
-                  className="h-9 text-sm rounded-full border-gray-200 bg-gray-50"
-                  autoFocus
-                  data-testid="input-guest-name"
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!guestName.trim()}
-                  className="bg-[#F0B429] hover:bg-[#e0a820] text-gray-900 font-semibold shrink-0 rounded-full px-4"
-                  data-testid="button-name-submit"
-                >
-                  Next
-                </Button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {step === "message" && (
-          <>
-            <div className="flex justify-end">
-              <div className="bg-[#F0B429] rounded-2xl rounded-br-sm px-4 py-3 max-w-[82%] shadow-sm">
-                <p className="text-sm text-gray-900 font-medium">{guestName}</p>
-              </div>
-            </div>
-            <div className="flex justify-start items-end gap-2">
-              <BotAvatar size={28} />
-              <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 max-w-[82%] shadow-sm">
-                <p className="text-sm text-gray-800">
-                  Hi {guestName}! What can I help you with?
-                </p>
-              </div>
-            </div>
-          </>
-        )}
       </div>
-
-      {/* Input bar */}
-      {step === "message" && (
-        <div className="shrink-0 bg-white border-t border-gray-100 px-4 py-3">
-          <form onSubmit={handleSend} className="flex items-center gap-3">
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Ask Question"
-              className="flex-1 h-10 rounded-full border-gray-200 bg-gray-50 text-sm focus-visible:ring-1 focus-visible:ring-yellow-400/50"
-              autoFocus
-              data-testid="input-message"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!message.trim() || startConversation.isPending}
-              className="rounded-full w-10 h-10 bg-[#F0B429] hover:bg-[#e0a820] text-gray-900 shrink-0 shadow-sm"
-              data-testid="button-send-message"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </form>
-        </div>
-      )}
     </div>
   );
 }

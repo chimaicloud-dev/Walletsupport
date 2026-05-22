@@ -65,6 +65,11 @@ export default function PublicThreadPage() {
     sendGuestMessage.mutate({ token, data: { content: replyContent.trim() } });
   };
 
+  const handleBack = () => {
+    localStorage.removeItem(`chat_token_handle_${handle}`);
+    setLocation(`/chat/${handle}`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
@@ -79,7 +84,6 @@ export default function PublicThreadPage() {
         <div className="flex-1 p-4 space-y-4">
           <div className="flex justify-start"><Skeleton className="h-16 w-64 rounded-2xl" /></div>
           <div className="flex justify-end"><Skeleton className="h-12 w-52 rounded-2xl bg-yellow-100" /></div>
-          <div className="flex justify-start"><Skeleton className="h-20 w-72 rounded-2xl" /></div>
         </div>
       </div>
     );
@@ -90,11 +94,9 @@ export default function PublicThreadPage() {
       <div className="flex flex-col h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
         <BotAvatar size={72} />
         <h2 className="text-xl font-bold mt-4 mb-2">Conversation not found</h2>
-        <p className="text-gray-500 text-sm text-center mb-6">
-          This thread may have been removed or the link is invalid.
-        </p>
+        <p className="text-gray-500 text-sm text-center mb-6">This thread may have expired.</p>
         <button
-          onClick={() => setLocation(`/chat/${handle}`)}
+          onClick={handleBack}
           className="bg-[#F0B429] text-gray-900 font-semibold px-6 py-2.5 rounded-full text-sm"
         >
           Start a new chat
@@ -104,43 +106,29 @@ export default function PublicThreadPage() {
   }
 
   const caseId = `#${String(conversation.id).padStart(9, "0")}`;
+  const agentName = conversation.ownerDisplayName;
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
-      {/* Header — white, Binance-style */}
+      {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shadow-sm shrink-0">
-        {/* Back arrow */}
-        <button
-          onClick={() => setLocation(`/chat/${handle}`)}
-          className="text-gray-500 hover:text-gray-800 shrink-0 p-1"
-          data-testid="button-back"
-        >
+        <button onClick={handleBack} className="text-gray-500 hover:text-gray-800 shrink-0 p-1">
           <ArrowLeft className="w-5 h-5" />
         </button>
-
-        {/* Bot avatar */}
-        <div className="shrink-0">
-          <BotAvatar size={44} />
-        </div>
-
-        {/* Name + case ID */}
+        <div className="shrink-0"><BotAvatar size={44} /></div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-900 text-base leading-tight truncate">
-            {conversation.ownerDisplayName}
-          </p>
+          <p className="font-bold text-gray-900 text-base leading-tight truncate">{agentName}</p>
           <p className="text-gray-500 text-xs mt-0.5">Case ID {caseId}</p>
         </div>
-
-        {/* Action buttons */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600" data-testid="button-power">
+          <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600">
             <Power className="w-4 h-4" />
           </button>
           <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
-            <button className="px-3 py-1.5 text-gray-500 hover:bg-gray-50 flex items-center gap-1 text-xs font-medium border-r border-gray-200" data-testid="button-more">
+            <button className="px-3 py-1.5 text-gray-500 hover:bg-gray-50 flex items-center border-r border-gray-200">
               <MoreHorizontal className="w-4 h-4" />
             </button>
-            <button className="px-3 py-1.5 text-gray-500 hover:bg-gray-50 flex items-center" data-testid="button-close">
+            <button onClick={handleBack} className="px-3 py-1.5 text-gray-500 hover:bg-gray-50 flex items-center">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -154,7 +142,7 @@ export default function PublicThreadPage() {
           <BotAvatar size={28} />
           <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 max-w-[80%] shadow-sm">
             <p className="text-sm text-gray-800 leading-relaxed">
-              Welcome to customer support. I'm here to help you with your query.
+              Welcome to customer support. I'm your {agentName} assistant. How can I help you today?
             </p>
           </div>
         </div>
@@ -162,18 +150,12 @@ export default function PublicThreadPage() {
         {conversation.messages?.map((msg) => {
           const isGuest = msg.senderType === "guest";
           return (
-            <div
-              key={msg.id}
-              className={`flex items-end gap-2 ${isGuest ? "justify-end" : "justify-start"}`}
-            >
+            <div key={msg.id} className={`flex items-end gap-2 ${isGuest ? "justify-end" : "justify-start"}`}>
               {!isGuest && <BotAvatar size={28} />}
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
-                  isGuest
-                    ? "bg-[#F0B429] rounded-br-sm"
-                    : "bg-white rounded-bl-sm"
+                  isGuest ? "bg-[#F0B429] rounded-br-sm" : "bg-white rounded-bl-sm"
                 }`}
-                data-testid={`message-${msg.id}`}
               >
                 <p className={`text-sm leading-relaxed ${isGuest ? "text-gray-900" : "text-gray-800"}`}>
                   {msg.content}
@@ -188,7 +170,7 @@ export default function PublicThreadPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input bar */}
+      {/* Input */}
       <div className="shrink-0 bg-white border-t border-gray-100 px-4 py-3">
         <form onSubmit={handleSend} className="flex items-center gap-3">
           <Input
@@ -197,19 +179,15 @@ export default function PublicThreadPage() {
             placeholder="Ask Question"
             className="flex-1 h-10 rounded-full border-gray-200 bg-gray-50 text-sm focus-visible:ring-1 focus-visible:ring-yellow-400/50"
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend(e as any);
-              }
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(e as any); }
             }}
-            data-testid="input-reply"
+            autoFocus
           />
           <Button
             type="submit"
             size="icon"
             disabled={!replyContent.trim() || sendGuestMessage.isPending}
             className="rounded-full w-10 h-10 bg-[#F0B429] hover:bg-[#e0a820] text-gray-900 shrink-0 shadow-sm"
-            data-testid="button-send-reply"
           >
             <Send className="w-4 h-4" />
           </Button>

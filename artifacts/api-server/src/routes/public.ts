@@ -56,11 +56,13 @@ router.post("/:handle/contact", async (req, res) => {
     agentName: null,
   }).returning();
 
-  await db.insert(messagesTable).values({
-    conversationId: conv.id,
-    senderType: "guest",
-    content: message,
-  });
+  if (message && message.trim()) {
+    await db.insert(messagesTable).values({
+      conversationId: conv.id,
+      senderType: "guest",
+      content: message.trim(),
+    });
+  }
 
   res.status(201).json({
     id: conv.id,
@@ -121,11 +123,13 @@ router.post("/link/:slug/contact", async (req, res) => {
     agentName,
   }).returning();
 
-  await db.insert(messagesTable).values({
-    conversationId: conv.id,
-    senderType: "guest",
-    content: message,
-  });
+  if (message && message.trim()) {
+    await db.insert(messagesTable).values({
+      conversationId: conv.id,
+      senderType: "guest",
+      content: message.trim(),
+    });
+  }
 
   res.status(201).json({
     id: conv.id,
