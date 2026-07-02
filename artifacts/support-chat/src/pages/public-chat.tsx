@@ -114,7 +114,6 @@ export default function PublicChatPage() {
         <BotAvatar size={44} />
         <div className="flex-1 min-w-0">
           <p className="font-bold text-gray-900 text-base leading-tight truncate">{agentName}</p>
-          <p className="text-gray-500 text-xs">Wallet support ExPJdev</p>
         </div>
       </div>
 
