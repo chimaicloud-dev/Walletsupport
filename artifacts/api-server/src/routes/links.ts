@@ -32,28 +32,36 @@ router.post("/", requireAuth, async (req, res) => {
     return;
   }
 
-  const safeSlug = slug.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
-
-  const existing = await db.select().from(chatLinksTable).where(eq(chatLinksTable.slug, safeSlug));
-  if (existing.length > 0) {
-    res.status(409).json({ error: "That link slug is already taken. Try a different one." });
+  if (!slug || typeof slug !== "string" || !slug.trim()) {
+    res.status(400).json({ error: "A URL slug is required." });
     return;
   }
 
-  const [link] = await db.insert(chatLinksTable).values({
-    ownerId: user.id,
-    slug: safeSlug,
-    label,
-    customName: customName?.trim() || null,
-  }).returning();
+  const safeSlug = slug.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
 
-  res.status(201).json({
-    id: link.id,
-    slug: link.slug,
-    label: link.label,
-    customName: link.customName ?? null,
-    createdAt: link.createdAt.toISOString(),
-  });
+  try {
+    const [link] = await db.insert(chatLinksTable).values({
+      ownerId: user.id,
+      slug: safeSlug,
+      label,
+      customName: customName?.trim() || null,
+    }).returning();
+
+    res.status(201).json({
+      id: link.id,
+      slug: link.slug,
+      label: link.label,
+      customName: link.customName ?? null,
+      createdAt: link.createdAt.toISOString(),
+    });
+  } catch (err: any) {
+    if (err?.code === "23505") {
+      res.status(409).json({ error: "That link slug is already taken. Try a different one." });
+      return;
+    }
+    console.error("Failed to create chat link:", err);
+    res.status(500).json({ error: "Something went wrong creating the link. Please try again." });
+  }
 });
 
 router.put("/:id", requireAuth, async (req, res) => {
