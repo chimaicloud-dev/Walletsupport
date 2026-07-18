@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, conversationsTable, messagesTable } from "@workspace/db";
-import { eq, and, count, desc } from "drizzle-orm";
+import { db, conversationsTable, messagesTable } from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { randomBytes } from "crypto";
 
@@ -11,14 +11,9 @@ function generateToken(): string {
 }
 
 router.get("/stats", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
+  const userId = (req as any).userId as number;
 
-  const allConvs = await db.select().from(conversationsTable).where(eq(conversationsTable.ownerId, user.id));
+  const allConvs = await db.select().from(conversationsTable).where(eq(conversationsTable.ownerId, userId));
   const total = allConvs.length;
   const unread = allConvs.filter(c => !c.isRead).length;
   const open = allConvs.filter(c => c.status === "open").length;
@@ -28,15 +23,10 @@ router.get("/stats", requireAuth, async (req, res) => {
 });
 
 router.get("/", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.json([]);
-    return;
-  }
+  const userId = (req as any).userId as number;
 
   const convs = await db.select().from(conversationsTable)
-    .where(eq(conversationsTable.ownerId, user.id))
+    .where(eq(conversationsTable.ownerId, userId))
     .orderBy(desc(conversationsTable.lastMessageAt));
 
   const result = await Promise.all(convs.map(async (c) => {
@@ -58,16 +48,11 @@ router.get("/", requireAuth, async (req, res) => {
 });
 
 router.get("/:id", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
+  const userId = (req as any).userId as number;
   const id = parseInt(req.params.id as string);
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.status(404).json({ error: "Not found" });
-    return;
-  }
 
   const [conv] = await db.select().from(conversationsTable)
-    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.ownerId, user.id)));
+    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.ownerId, userId)));
   if (!conv) {
     res.status(404).json({ error: "Not found" });
     return;
@@ -89,17 +74,12 @@ router.get("/:id", requireAuth, async (req, res) => {
 });
 
 router.post("/:id/read", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
+  const userId = (req as any).userId as number;
   const id = parseInt(req.params.id as string);
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.status(404).json({ error: "Not found" });
-    return;
-  }
 
   const [conv] = await db.update(conversationsTable)
     .set({ isRead: true })
-    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.ownerId, user.id)))
+    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.ownerId, userId)))
     .returning();
 
   if (!conv) {
@@ -123,16 +103,11 @@ router.post("/:id/read", requireAuth, async (req, res) => {
 });
 
 router.get("/:id/messages", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
+  const userId = (req as any).userId as number;
   const id = parseInt(req.params.id as string);
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
 
   const [conv] = await db.select().from(conversationsTable)
-    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.ownerId, user.id)));
+    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.ownerId, userId)));
   if (!conv) {
     res.status(404).json({ error: "Not found" });
     return;
@@ -152,18 +127,12 @@ router.get("/:id/messages", requireAuth, async (req, res) => {
 });
 
 router.post("/:id/messages", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
+  const userId = (req as any).userId as number;
   const id = parseInt(req.params.id as string);
   const { content } = req.body;
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
   const [conv] = await db.select().from(conversationsTable)
-    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.ownerId, user.id)));
+    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.ownerId, userId)));
   if (!conv) {
     res.status(404).json({ error: "Not found" });
     return;

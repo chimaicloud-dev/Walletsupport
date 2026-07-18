@@ -1,0 +1,1 @@
+- [JWT Auth Architecture](jwt-auth.md) — Clerk fully removed; email/password JWT auth in place. bcryptjs for hashing, jsonwebtoken for tokens, stored in localStorage.

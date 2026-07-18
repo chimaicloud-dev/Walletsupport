@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { useClerk, useUser } from "@clerk/react";
+import { useAuth } from "@/context/auth";
 import { Inbox, Settings, LogOut, Link as LinkIcon, Mail } from "lucide-react";
 import { useGetConversationStats } from "@workspace/api-client-react";
 
@@ -10,17 +10,12 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
-  const { signOut } = useClerk();
-  const { user } = useUser();
+  const { user, logout } = useAuth();
   const { data: stats } = useGetConversationStats({
     query: {
       queryKey: ["/api/conversations/stats"],
     },
   });
-
-  const handleLogout = () => {
-    signOut({ redirectUrl: "/" });
-  };
 
   return (
     <div className="flex min-h-[100dvh] bg-sidebar">
@@ -83,11 +78,11 @@ export default function Layout({ children }: LayoutProps) {
               <Mail className="w-3.5 h-3.5 text-sidebar-primary" />
             </div>
             <p className="text-sm font-medium text-sidebar-foreground/80 truncate">
-              {user?.fullName || user?.primaryEmailAddress?.emailAddress}
+              {user?.displayName || user?.email}
             </p>
           </div>
           <button
-            onClick={handleLogout}
+            onClick={logout}
             className="w-full flex items-center px-3 py-2 text-sm font-medium text-sidebar-foreground/60 rounded-md hover:bg-sidebar-accent hover:text-red-400 transition-colors"
             data-testid="button-logout"
           >

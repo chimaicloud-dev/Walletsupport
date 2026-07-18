@@ -1,18 +1,13 @@
 import { Router } from "express";
-import { db, usersTable, chatLinksTable } from "@workspace/db";
+import { db, chatLinksTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
 
 router.get("/", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.json([]);
-    return;
-  }
-  const links = await db.select().from(chatLinksTable).where(eq(chatLinksTable.ownerId, user.id));
+  const userId = (req as any).userId as number;
+  const links = await db.select().from(chatLinksTable).where(eq(chatLinksTable.ownerId, userId));
   res.json(links.map(l => ({
     id: l.id,
     slug: l.slug,
@@ -23,14 +18,8 @@ router.get("/", requireAuth, async (req, res) => {
 });
 
 router.post("/", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
+  const userId = (req as any).userId as number;
   const { slug, label, customName } = req.body;
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
 
   if (!slug || typeof slug !== "string" || !slug.trim()) {
     res.status(400).json({ error: "A URL slug is required." });
@@ -41,7 +30,7 @@ router.post("/", requireAuth, async (req, res) => {
 
   try {
     const [link] = await db.insert(chatLinksTable).values({
-      ownerId: user.id,
+      ownerId: userId,
       slug: safeSlug,
       label,
       customName: customName?.trim() || null,
@@ -65,15 +54,9 @@ router.post("/", requireAuth, async (req, res) => {
 });
 
 router.put("/:id", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
+  const userId = (req as any).userId as number;
   const id = parseInt(req.params.id as string);
   const { customName, label } = req.body;
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
 
   const updateData: Record<string, any> = {};
   if (customName !== undefined) updateData.customName = customName?.trim() || null;
@@ -81,7 +64,7 @@ router.put("/:id", requireAuth, async (req, res) => {
 
   const [link] = await db.update(chatLinksTable)
     .set(updateData)
-    .where(and(eq(chatLinksTable.id, id), eq(chatLinksTable.ownerId, user.id)))
+    .where(and(eq(chatLinksTable.id, id), eq(chatLinksTable.ownerId, userId)))
     .returning();
 
   if (!link) {
@@ -99,16 +82,9 @@ router.put("/:id", requireAuth, async (req, res) => {
 });
 
 router.delete("/:id", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
+  const userId = (req as any).userId as number;
   const id = parseInt(req.params.id as string);
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
-  if (!user) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  await db.delete(chatLinksTable).where(and(eq(chatLinksTable.id, id), eq(chatLinksTable.ownerId, user.id)));
+  await db.delete(chatLinksTable).where(and(eq(chatLinksTable.id, id), eq(chatLinksTable.ownerId, userId)));
   res.json({ success: true });
 });
 

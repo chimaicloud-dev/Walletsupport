@@ -6,15 +6,15 @@ import { requireAuth } from "../middlewares/requireAuth";
 const router = Router();
 
 router.get("/me", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
+  const userId = (req as any).userId as number;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!user) {
     res.status(404).json({ error: "Profile not found" });
     return;
   }
   res.json({
     id: user.id,
-    clerkId: user.clerkId,
+    email: user.email,
     handle: user.handle,
     displayName: user.displayName,
     bio: user.bio ?? null,
@@ -24,42 +24,28 @@ router.get("/me", requireAuth, async (req, res) => {
 });
 
 router.put("/me", requireAuth, async (req, res) => {
-  const clerkUserId = (req as any).clerkUserId;
+  const userId = (req as any).userId as number;
   const { handle, displayName, bio } = req.body;
 
-  const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId));
+  const [user] = await db.update(usersTable)
+    .set({ handle, displayName, bio: bio || null })
+    .where(eq(usersTable.id, userId))
+    .returning();
 
-  if (existing.length === 0) {
-    const [user] = await db.insert(usersTable).values({
-      clerkId: clerkUserId,
-      handle,
-      displayName,
-      bio: bio || null,
-    }).returning();
-    res.json({
-      id: user.id,
-      clerkId: user.clerkId,
-      handle: user.handle,
-      displayName: user.displayName,
-      bio: user.bio ?? null,
-      avatarUrl: user.avatarUrl ?? null,
-      createdAt: user.createdAt.toISOString(),
-    });
-  } else {
-    const [user] = await db.update(usersTable)
-      .set({ handle, displayName, bio: bio || null })
-      .where(eq(usersTable.clerkId, clerkUserId))
-      .returning();
-    res.json({
-      id: user.id,
-      clerkId: user.clerkId,
-      handle: user.handle,
-      displayName: user.displayName,
-      bio: user.bio ?? null,
-      avatarUrl: user.avatarUrl ?? null,
-      createdAt: user.createdAt.toISOString(),
-    });
+  if (!user) {
+    res.status(404).json({ error: "Profile not found" });
+    return;
   }
+
+  res.json({
+    id: user.id,
+    email: user.email,
+    handle: user.handle,
+    displayName: user.displayName,
+    bio: user.bio ?? null,
+    avatarUrl: user.avatarUrl ?? null,
+    createdAt: user.createdAt.toISOString(),
+  });
 });
 
 router.get("/:handle", async (req, res) => {
