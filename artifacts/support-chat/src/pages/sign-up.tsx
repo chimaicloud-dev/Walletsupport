@@ -66,8 +66,6 @@ export default function SignUpPage() {
                   value={form.handle}
                   onChange={set("handle")}
                   required
-                  pattern="[a-zA-Z0-9_-]+"
-                  title="Only letters, numbers, underscores, and hyphens"
                   className="border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
