@@ -39,6 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthTokenGetter(() => localStorage.getItem(TOKEN_KEY));
   }, []);
 
+  const safeJson = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`Server error (${res.status}). Please try again.`);
+    }
+  };
+
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
@@ -47,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      const data = await safeJson(res);
       if (!res.ok) throw new Error(data.error || "Login failed");
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
@@ -65,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, handle, displayName }),
       });
-      const data = await res.json();
+      const data = await safeJson(res);
       if (!res.ok) throw new Error(data.error || "Registration failed");
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));

@@ -33,7 +33,7 @@ export default function SignInPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
