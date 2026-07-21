@@ -4,14 +4,15 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-const dbUrl = process.env.DATABASE_URL;
+// Support DATABASE_URL (standard) or POSTGRES_URL (Vercel Postgres auto-injected)
+const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
 if (!dbUrl) {
-  console.error("WARNING: DATABASE_URL is not set — DB calls will fail");
+  console.error("WARNING: Neither DATABASE_URL nor POSTGRES_URL is set — DB calls will fail");
 }
 
 const sslConfig = dbUrl
-  ? dbUrl.includes("sslmode=disable") || dbUrl.includes("localhost") || dbUrl.includes("127.0.0.1")
+  ? dbUrl.startsWith("https://") || dbUrl.includes("sslmode=disable") || dbUrl.includes("localhost") || dbUrl.includes("127.0.0.1")
     ? false
     : { rejectUnauthorized: false }
   : false;
