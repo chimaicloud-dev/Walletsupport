@@ -5,10 +5,12 @@ import usersRouter from "./users";
 import conversationsRouter from "./conversations";
 import publicRouter from "./public";
 import linksRouter from "./links";
+import setupRouter from "./setup";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(setupRouter);
 router.use("/auth", authRouter);
 router.use("/users", usersRouter);
 router.use("/conversations", conversationsRouter);
