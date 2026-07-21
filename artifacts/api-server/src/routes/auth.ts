@@ -63,7 +63,7 @@ router.post("/login", async (req, res) => {
     });
   } catch (err: any) {
     console.error("Login error:", err?.message ?? err);
-    res.status(500).json({ error: "Login failed. Please check your credentials and try again." });
+    res.status(500).json({ error: `DB error: ${err?.message ?? String(err)}` });
   }
 });
 
