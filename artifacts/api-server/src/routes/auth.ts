@@ -45,21 +45,26 @@ router.post("/login", async (req, res) => {
     res.status(400).json({ error: "email and password are required" });
     return;
   }
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase().trim()));
-  if (!user) {
-    res.status(401).json({ error: "Invalid email or password" });
-    return;
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase().trim()));
+    if (!user) {
+      res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+    const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
+    res.json({
+      token,
+      user: { id: user.id, email: user.email, handle: user.handle, displayName: user.displayName, bio: user.bio ?? null, avatarUrl: user.avatarUrl ?? null },
+    });
+  } catch (err: any) {
+    console.error("Login error:", err?.message ?? err);
+    res.status(500).json({ error: "Login failed. Please check your credentials and try again." });
   }
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
-    res.status(401).json({ error: "Invalid email or password" });
-    return;
-  }
-  const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
-  res.json({
-    token,
-    user: { id: user.id, email: user.email, handle: user.handle, displayName: user.displayName, bio: user.bio ?? null, avatarUrl: user.avatarUrl ?? null },
-  });
 });
 
 export default router;
