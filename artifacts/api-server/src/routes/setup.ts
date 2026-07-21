@@ -79,6 +79,11 @@ router.get("/setup-db", async (_req, res) => {
     res.status(500).json({
       status: "error",
       error: err?.message ?? String(err),
+      code: err?.code,
+      detail: err?.detail,
+      hint: err?.hint,
+      dbUrlSet: !!process.env.DATABASE_URL,
+      dbUrlPrefix: process.env.DATABASE_URL?.slice(0, 20) ?? "NOT SET",
       completedSteps: steps,
     });
   }
