@@ -4,18 +4,23 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+const dbUrl = process.env.DATABASE_URL;
+
+if (!dbUrl) {
+  console.error("WARNING: DATABASE_URL is not set — DB calls will fail");
 }
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes("sslmode=disable")
+const sslConfig = dbUrl
+  ? dbUrl.includes("sslmode=disable") || dbUrl.includes("localhost") || dbUrl.includes("127.0.0.1")
     ? false
-    : { rejectUnauthorized: false },
+    : { rejectUnauthorized: false }
+  : false;
+
+export const pool = new Pool({
+  connectionString: dbUrl ?? "postgres://localhost/placeholder",
+  ssl: sslConfig,
 });
+
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
