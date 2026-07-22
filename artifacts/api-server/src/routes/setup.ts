@@ -1,14 +1,15 @@
 import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
+import bcrypt from "bcryptjs";
 
 const router: IRouter = Router();
 
-// One-time database migration endpoint.
-// Visit /api/setup-db to apply the correct schema to the Vercel database.
 router.get("/setup-db", async (_req, res) => {
   const steps: string[] = [];
   try {
-    // Drop old tables in dependency order (CASCADE handles FK refs)
+    // Drop in dependency order
+    await pool.query("DROP TABLE IF EXISTS token_transactions CASCADE");
+    steps.push("dropped token_transactions");
     await pool.query("DROP TABLE IF EXISTS messages CASCADE");
     steps.push("dropped messages");
     await pool.query("DROP TABLE IF EXISTS chat_links CASCADE");
@@ -17,8 +18,9 @@ router.get("/setup-db", async (_req, res) => {
     steps.push("dropped conversations");
     await pool.query("DROP TABLE IF EXISTS users CASCADE");
     steps.push("dropped users");
+    await pool.query("DROP TABLE IF EXISTS admins CASCADE");
+    steps.push("dropped admins");
 
-    // Create users table (JWT auth: email + password_hash)
     await pool.query(`
       CREATE TABLE users (
         id            SERIAL PRIMARY KEY,
@@ -28,11 +30,22 @@ router.get("/setup-db", async (_req, res) => {
         display_name  TEXT NOT NULL,
         bio           TEXT,
         avatar_url    TEXT,
+        token_balance INTEGER NOT NULL DEFAULT 0,
         created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
     steps.push("created users");
+
+    await pool.query(`
+      CREATE TABLE admins (
+        id            SERIAL PRIMARY KEY,
+        email         TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    steps.push("created admins");
 
     await pool.query(`
       CREATE TABLE conversations (
@@ -74,6 +87,26 @@ router.get("/setup-db", async (_req, res) => {
     `);
     steps.push("created chat_links");
 
+    await pool.query(`
+      CREATE TABLE token_transactions (
+        id         SERIAL PRIMARY KEY,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        amount     INTEGER NOT NULL,
+        type       TEXT NOT NULL,
+        note       TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    steps.push("created token_transactions");
+
+    // Seed admin account
+    const adminHash = await bcrypt.hash("Chima@2025", 10);
+    await pool.query(
+      `INSERT INTO admins (email, password_hash) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
+      ["alexaaraya.34a@gmail.com", adminHash]
+    );
+    steps.push("seeded admin user");
+
     res.json({ status: "ok", message: "Database schema applied successfully.", steps });
   } catch (err: any) {
     res.status(500).json({
@@ -81,9 +114,7 @@ router.get("/setup-db", async (_req, res) => {
       error: err?.message ?? String(err),
       code: err?.code,
       detail: err?.detail,
-      hint: err?.hint,
-      dbUrlSet: !!process.env.DATABASE_URL,
-      dbUrlPrefix: process.env.DATABASE_URL?.slice(0, 20) ?? "NOT SET",
+      dbUrlSet: !!process.env.DATABASE_URL || !!process.env.POSTGRES_URL,
       completedSteps: steps,
     });
   }

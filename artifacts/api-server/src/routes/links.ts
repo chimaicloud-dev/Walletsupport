@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { db, chatLinksTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, chatLinksTable, usersTable, tokenTransactionsTable } from "@workspace/db";
+import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
+const TOKEN_COST = 1; // tokens per link
 
 router.get("/", requireAuth, async (req, res) => {
   const userId = (req as any).userId as number;
@@ -26,6 +27,16 @@ router.post("/", requireAuth, async (req, res) => {
     return;
   }
 
+  // Check token balance
+  const [user] = await db.select({ tokenBalance: usersTable.tokenBalance }).from(usersTable).where(eq(usersTable.id, userId));
+  if (!user || user.tokenBalance < TOKEN_COST) {
+    res.status(402).json({
+      error: "Insufficient tokens. You need at least 1 token (₦300) to create a link.",
+      tokenBalance: user?.tokenBalance ?? 0,
+    });
+    return;
+  }
+
   const safeSlug = slug.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
 
   try {
@@ -36,12 +47,27 @@ router.post("/", requireAuth, async (req, res) => {
       customName: customName?.trim() || null,
     }).returning();
 
+    // Deduct token and record transaction
+    await db.update(usersTable)
+      .set({ tokenBalance: sql`${usersTable.tokenBalance} - ${TOKEN_COST}` })
+      .where(eq(usersTable.id, userId));
+
+    await db.insert(tokenTransactionsTable).values({
+      userId,
+      amount: -TOKEN_COST,
+      type: "link_created",
+      note: `Link created: /c/${safeSlug}`,
+    });
+
+    const [updated] = await db.select({ tokenBalance: usersTable.tokenBalance }).from(usersTable).where(eq(usersTable.id, userId));
+
     res.status(201).json({
       id: link.id,
       slug: link.slug,
       label: link.label,
       customName: link.customName ?? null,
       createdAt: link.createdAt.toISOString(),
+      tokenBalance: updated.tokenBalance,
     });
   } catch (err: any) {
     if (err?.code === "23505") {
@@ -67,18 +93,9 @@ router.put("/:id", requireAuth, async (req, res) => {
     .where(and(eq(chatLinksTable.id, id), eq(chatLinksTable.ownerId, userId)))
     .returning();
 
-  if (!link) {
-    res.status(404).json({ error: "Link not found" });
-    return;
-  }
+  if (!link) { res.status(404).json({ error: "Link not found" }); return; }
 
-  res.json({
-    id: link.id,
-    slug: link.slug,
-    label: link.label,
-    customName: link.customName ?? null,
-    createdAt: link.createdAt.toISOString(),
-  });
+  res.json({ id: link.id, slug: link.slug, label: link.label, customName: link.customName ?? null, createdAt: link.createdAt.toISOString() });
 });
 
 router.delete("/:id", requireAuth, async (req, res) => {

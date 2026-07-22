@@ -6,6 +6,7 @@ import conversationsRouter from "./conversations";
 import publicRouter from "./public";
 import linksRouter from "./links";
 import setupRouter from "./setup";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use("/users", usersRouter);
 router.use("/conversations", conversationsRouter);
 router.use("/public", publicRouter);
 router.use("/links", linksRouter);
+router.use("/admin", adminRouter);
 
 export default router;

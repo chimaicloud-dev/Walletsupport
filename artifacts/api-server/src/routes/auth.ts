@@ -3,10 +3,23 @@ import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
 const SALT_ROUNDS = 10;
+
+function userPayload(user: typeof usersTable.$inferSelect) {
+  return {
+    id: user.id,
+    email: user.email,
+    handle: user.handle,
+    displayName: user.displayName,
+    bio: user.bio ?? null,
+    avatarUrl: user.avatarUrl ?? null,
+    tokenBalance: user.tokenBalance,
+  };
+}
 
 router.post("/register", async (req, res) => {
   const { email, password, handle, displayName } = req.body;
@@ -25,10 +38,7 @@ router.post("/register", async (req, res) => {
       .values({ email: email.toLowerCase().trim(), passwordHash, handle: handle.trim(), displayName: displayName.trim() })
       .returning();
     const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
-    res.status(201).json({
-      token,
-      user: { id: user.id, email: user.email, handle: user.handle, displayName: user.displayName, bio: user.bio ?? null, avatarUrl: user.avatarUrl ?? null },
-    });
+    res.status(201).json({ token, user: userPayload(user) });
   } catch (err: any) {
     if (err?.code === "23505") {
       res.status(409).json({ error: "That email or handle is already taken" });
@@ -57,13 +67,21 @@ router.post("/login", async (req, res) => {
       return;
     }
     const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({
-      token,
-      user: { id: user.id, email: user.email, handle: user.handle, displayName: user.displayName, bio: user.bio ?? null, avatarUrl: user.avatarUrl ?? null },
-    });
+    res.json({ token, user: userPayload(user) });
   } catch (err: any) {
     console.error("Login error:", err?.message ?? err);
-    res.status(500).json({ error: `DB error: ${err?.message ?? String(err)}` });
+    res.status(500).json({ error: "Login failed. Please try again." });
+  }
+});
+
+router.get("/me", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as number;
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    res.json(userPayload(user));
+  } catch {
+    res.status(500).json({ error: "Failed to fetch user" });
   }
 });
 
