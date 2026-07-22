@@ -8,7 +8,8 @@ export interface AuthUser {
   displayName: string;
   bio?: string | null;
   avatarUrl?: string | null;
-  tokenBalance: number;
+  walletBalance: number;
+  linksAvailable: number;
 }
 
 interface AuthContextType {
@@ -18,7 +19,7 @@ interface AuthContextType {
   register: (email: string, password: string, handle: string, displayName: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
-  setTokenBalance: (balance: number) => void;
+  setWallet: (walletBalance: number, linksAvailable: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -28,7 +29,6 @@ const USER_KEY = "auth_user";
 function getStoredUser(): AuthUser | null {
   try { return JSON.parse(localStorage.getItem(USER_KEY) || "null"); } catch { return null; }
 }
-
 function storeUser(user: AuthUser) {
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
@@ -37,9 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(getStoredUser);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    setAuthTokenGetter(() => localStorage.getItem(TOKEN_KEY));
-  }, []);
+  useEffect(() => { setAuthTokenGetter(() => localStorage.getItem(TOKEN_KEY)); }, []);
 
   const safeJson = async (res: Response) => {
     const text = await res.text();
@@ -81,23 +79,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) return;
     try {
       const res = await fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) {
-        const data = await res.json();
-        storeUser(data);
-        setUser(data);
-      }
+      if (res.ok) { const data = await res.json(); storeUser(data); setUser(data); }
     } catch {}
   };
 
-  const setTokenBalance = (balance: number) => {
+  const setWallet = (walletBalance: number, linksAvailable: number) => {
     if (!user) return;
-    const updated = { ...user, tokenBalance: balance };
+    const updated = { ...user, walletBalance, linksAvailable };
     storeUser(updated);
     setUser(updated);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser, setTokenBalance }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser, setWallet }}>
       {children}
     </AuthContext.Provider>
   );

@@ -10,7 +10,7 @@ export const usersTable = pgTable("users", {
   displayName: text("display_name").notNull(),
   bio: text("bio"),
   avatarUrl: text("avatar_url"),
-  tokenBalance: integer("token_balance").notNull().default(0),
+  walletBalance: integer("wallet_balance").notNull().default(0), // in Naira
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

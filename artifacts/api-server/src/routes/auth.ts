@@ -8,6 +8,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
 const SALT_ROUNDS = 10;
+const LINK_COST = 300; // Naira per link
 
 function userPayload(user: typeof usersTable.$inferSelect) {
   return {
@@ -17,7 +18,8 @@ function userPayload(user: typeof usersTable.$inferSelect) {
     displayName: user.displayName,
     bio: user.bio ?? null,
     avatarUrl: user.avatarUrl ?? null,
-    tokenBalance: user.tokenBalance,
+    walletBalance: user.walletBalance,
+    linksAvailable: Math.floor(user.walletBalance / LINK_COST),
   };
 }
 
@@ -57,15 +59,9 @@ router.post("/login", async (req, res) => {
   }
   try {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase().trim()));
-    if (!user) {
-      res.status(401).json({ error: "Invalid email or password" });
-      return;
-    }
+    if (!user) { res.status(401).json({ error: "Invalid email or password" }); return; }
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      res.status(401).json({ error: "Invalid email or password" });
-      return;
-    }
+    if (!valid) { res.status(401).json({ error: "Invalid email or password" }); return; }
     const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token, user: userPayload(user) });
   } catch (err: any) {

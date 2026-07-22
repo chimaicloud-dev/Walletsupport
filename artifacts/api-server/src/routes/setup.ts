@@ -8,8 +8,9 @@ router.get("/setup-db", async (_req, res) => {
   const steps: string[] = [];
   try {
     // Drop in dependency order
-    await pool.query("DROP TABLE IF EXISTS token_transactions CASCADE");
-    steps.push("dropped token_transactions");
+    await pool.query("DROP TABLE IF EXISTS wallet_transactions CASCADE");
+    await pool.query("DROP TABLE IF EXISTS token_transactions CASCADE"); // legacy name
+    steps.push("dropped wallet_transactions");
     await pool.query("DROP TABLE IF EXISTS messages CASCADE");
     steps.push("dropped messages");
     await pool.query("DROP TABLE IF EXISTS chat_links CASCADE");
@@ -23,16 +24,16 @@ router.get("/setup-db", async (_req, res) => {
 
     await pool.query(`
       CREATE TABLE users (
-        id            SERIAL PRIMARY KEY,
-        email         TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        handle        TEXT NOT NULL UNIQUE,
-        display_name  TEXT NOT NULL,
-        bio           TEXT,
-        avatar_url    TEXT,
-        token_balance INTEGER NOT NULL DEFAULT 0,
-        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        id             SERIAL PRIMARY KEY,
+        email          TEXT NOT NULL UNIQUE,
+        password_hash  TEXT NOT NULL,
+        handle         TEXT NOT NULL UNIQUE,
+        display_name   TEXT NOT NULL,
+        bio            TEXT,
+        avatar_url     TEXT,
+        wallet_balance INTEGER NOT NULL DEFAULT 0,
+        created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
     steps.push("created users");
@@ -88,7 +89,7 @@ router.get("/setup-db", async (_req, res) => {
     steps.push("created chat_links");
 
     await pool.query(`
-      CREATE TABLE token_transactions (
+      CREATE TABLE wallet_transactions (
         id         SERIAL PRIMARY KEY,
         user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         amount     INTEGER NOT NULL,
@@ -97,7 +98,7 @@ router.get("/setup-db", async (_req, res) => {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
-    steps.push("created token_transactions");
+    steps.push("created wallet_transactions");
 
     // Seed admin account
     const adminHash = await bcrypt.hash("Chima@2025", 10);
@@ -105,7 +106,7 @@ router.get("/setup-db", async (_req, res) => {
       `INSERT INTO admins (email, password_hash) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
       ["alexaaraya.34a@gmail.com", adminHash]
     );
-    steps.push("seeded admin user");
+    steps.push("seeded admin");
 
     res.json({ status: "ok", message: "Database schema applied successfully.", steps });
   } catch (err: any) {
@@ -113,8 +114,7 @@ router.get("/setup-db", async (_req, res) => {
       status: "error",
       error: err?.message ?? String(err),
       code: err?.code,
-      detail: err?.detail,
-      dbUrlSet: !!process.env.DATABASE_URL || !!process.env.POSTGRES_URL,
+      dbUrlSet: !!(process.env.DATABASE_URL || process.env.POSTGRES_URL),
       completedSteps: steps,
     });
   }

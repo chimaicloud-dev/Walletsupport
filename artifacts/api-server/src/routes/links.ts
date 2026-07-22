@@ -1,20 +1,17 @@
 import { Router } from "express";
-import { db, chatLinksTable, usersTable, tokenTransactionsTable } from "@workspace/db";
+import { db, chatLinksTable, usersTable, walletTransactionsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
-const TOKEN_COST = 1; // tokens per link
+const LINK_COST = 300; // Naira per link
 
 router.get("/", requireAuth, async (req, res) => {
   const userId = (req as any).userId as number;
   const links = await db.select().from(chatLinksTable).where(eq(chatLinksTable.ownerId, userId));
   res.json(links.map(l => ({
-    id: l.id,
-    slug: l.slug,
-    label: l.label,
-    customName: l.customName ?? null,
-    createdAt: l.createdAt.toISOString(),
+    id: l.id, slug: l.slug, label: l.label,
+    customName: l.customName ?? null, createdAt: l.createdAt.toISOString(),
   })));
 });
 
@@ -27,12 +24,14 @@ router.post("/", requireAuth, async (req, res) => {
     return;
   }
 
-  // Check token balance
-  const [user] = await db.select({ tokenBalance: usersTable.tokenBalance }).from(usersTable).where(eq(usersTable.id, userId));
-  if (!user || user.tokenBalance < TOKEN_COST) {
+  const [user] = await db.select({ walletBalance: usersTable.walletBalance })
+    .from(usersTable).where(eq(usersTable.id, userId));
+
+  if (!user || user.walletBalance < LINK_COST) {
     res.status(402).json({
-      error: "Insufficient tokens. You need at least 1 token (₦300) to create a link.",
-      tokenBalance: user?.tokenBalance ?? 0,
+      error: `Insufficient balance. You need at least ₦${LINK_COST} to create a link.`,
+      walletBalance: user?.walletBalance ?? 0,
+      required: LINK_COST,
     });
     return;
   }
@@ -41,33 +40,28 @@ router.post("/", requireAuth, async (req, res) => {
 
   try {
     const [link] = await db.insert(chatLinksTable).values({
-      ownerId: userId,
-      slug: safeSlug,
-      label,
+      ownerId: userId, slug: safeSlug, label,
       customName: customName?.trim() || null,
     }).returning();
 
-    // Deduct token and record transaction
+    // Deduct ₦300 from wallet
     await db.update(usersTable)
-      .set({ tokenBalance: sql`${usersTable.tokenBalance} - ${TOKEN_COST}` })
+      .set({ walletBalance: sql`${usersTable.walletBalance} - ${LINK_COST}` })
       .where(eq(usersTable.id, userId));
 
-    await db.insert(tokenTransactionsTable).values({
-      userId,
-      amount: -TOKEN_COST,
-      type: "link_created",
+    await db.insert(walletTransactionsTable).values({
+      userId, amount: -LINK_COST, type: "link_created",
       note: `Link created: /c/${safeSlug}`,
     });
 
-    const [updated] = await db.select({ tokenBalance: usersTable.tokenBalance }).from(usersTable).where(eq(usersTable.id, userId));
+    const [updated] = await db.select({ walletBalance: usersTable.walletBalance })
+      .from(usersTable).where(eq(usersTable.id, userId));
 
     res.status(201).json({
-      id: link.id,
-      slug: link.slug,
-      label: link.label,
-      customName: link.customName ?? null,
-      createdAt: link.createdAt.toISOString(),
-      tokenBalance: updated.tokenBalance,
+      id: link.id, slug: link.slug, label: link.label,
+      customName: link.customName ?? null, createdAt: link.createdAt.toISOString(),
+      walletBalance: updated.walletBalance,
+      linksAvailable: Math.floor(updated.walletBalance / LINK_COST),
     });
   } catch (err: any) {
     if (err?.code === "23505") {
@@ -83,18 +77,14 @@ router.put("/:id", requireAuth, async (req, res) => {
   const userId = (req as any).userId as number;
   const id = parseInt(req.params.id as string);
   const { customName, label } = req.body;
-
   const updateData: Record<string, any> = {};
   if (customName !== undefined) updateData.customName = customName?.trim() || null;
   if (label !== undefined) updateData.label = label;
-
   const [link] = await db.update(chatLinksTable)
     .set(updateData)
     .where(and(eq(chatLinksTable.id, id), eq(chatLinksTable.ownerId, userId)))
     .returning();
-
   if (!link) { res.status(404).json({ error: "Link not found" }); return; }
-
   res.json({ id: link.id, slug: link.slug, label: link.label, customName: link.customName ?? null, createdAt: link.createdAt.toISOString() });
 });
 
