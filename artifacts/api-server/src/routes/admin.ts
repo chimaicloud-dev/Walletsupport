@@ -7,7 +7,7 @@ import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
-const LINK_COST = 300;
+const LINK_COST = 500;
 
 // Admin login
 router.post("/login", async (req, res) => {

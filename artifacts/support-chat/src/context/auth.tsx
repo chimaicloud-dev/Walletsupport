@@ -37,7 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(getStoredUser);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => { setAuthTokenGetter(() => localStorage.getItem(TOKEN_KEY)); }, []);
+  useEffect(() => {
+    setAuthTokenGetter(() => localStorage.getItem(TOKEN_KEY));
+    if (localStorage.getItem(TOKEN_KEY)) refreshUser();
+  }, []);
 
   const safeJson = async (res: Response) => {
     const text = await res.text();

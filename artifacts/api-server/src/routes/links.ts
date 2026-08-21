@@ -4,7 +4,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
-const LINK_COST = 300; // Naira per link
+const LINK_COST = 500; // Naira per link
 
 router.get("/", requireAuth, async (req, res) => {
   const userId = (req as any).userId as number;
@@ -44,7 +44,7 @@ router.post("/", requireAuth, async (req, res) => {
       customName: customName?.trim() || null,
     }).returning();
 
-    // Deduct ₦300 from wallet
+    // Deduct ₦500 from wallet
     await db.update(usersTable)
       .set({ walletBalance: sql`${usersTable.walletBalance} - ${LINK_COST}` })
       .where(eq(usersTable.id, userId));

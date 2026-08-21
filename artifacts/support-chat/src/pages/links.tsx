@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 
 const ADMIN_WHATSAPP = "2348135590989";
-const TOKEN_COST_NAIRA = 300;
+const TOKEN_COST_NAIRA = 500;
 
 const createLinkSchema = z.object({
   slug: z.string().min(3, "At least 3 characters").max(50).regex(/^[a-zA-Z0-9_-]+$/, "Only letters, numbers, hyphens, and underscores"),
@@ -52,8 +52,11 @@ function TokenBadge({ balance }: { balance: number }) {
 
 function BuyTokensModal({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
+  const [amount, setAmount] = useState("");
+  const numericAmount = Number(amount);
+  const validAmount = Number.isInteger(numericAmount) && numericAmount >= TOKEN_COST_NAIRA;
   const whatsappMsg = encodeURIComponent(
-    `Hi, I'd like to buy tokens for my Wallet Support account.\n\nEmail: ${user?.email}\nHandle: @${user?.handle}\n\nPlease confirm payment of ₦${TOKEN_COST_NAIRA} per token.`
+    `Hello Wallet Support,\n\nI have paid for wallet support tokens.\n\nAccount email: ${user?.email}\nHandle: @${user?.handle}\nAmount paid: ₦${validAmount ? numericAmount.toLocaleString() : amount || "0"}\nTokens requested: ${validAmount ? Math.floor(numericAmount / TOKEN_COST_NAIRA) : 0}\n\nPlease verify my receipt and credit my wallet.`
   );
   const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP}?text=${whatsappMsg}`;
 
@@ -71,16 +74,34 @@ function BuyTokensModal({ onClose }: { onClose: () => void }) {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
             <p className="text-sm font-semibold text-amber-800 mb-1">How it works</p>
             <ul className="text-sm text-amber-700 space-y-1 list-none">
-              <li>🔗 Each link you create costs <strong>1 token (₦{TOKEN_COST_NAIRA})</strong></li>
-              <li>📱 Contact admin on WhatsApp to pay</li>
-              <li>✅ Admin credits your account once confirmed</li>
+              <li>🔗 Each support link costs <strong>₦{TOKEN_COST_NAIRA}</strong></li>
+              <li>💳 Enter the amount you want to buy below</li>
+              <li>📱 Pay into the account, then send your receipt</li>
             </ul>
           </div>
 
-          <div className="bg-muted rounded-xl p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Admin WhatsApp</p>
-            <p className="text-xl font-bold text-foreground tracking-wide">08135590989</p>
-            <p className="text-xs text-muted-foreground mt-1">Available for payment approvals</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <p className="text-xs text-blue-700 uppercase tracking-wide font-semibold mb-2">Pay to this account</p>
+            <p className="font-bold text-blue-950">CHIMA FAVOUR JOHN</p>
+            <p className="text-sm text-blue-900">8089670865 · PalmPay</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="token-purchase-amount">Amount to buy (₦)</Label>
+            <Input
+              id="token-purchase-amount"
+              type="number"
+              min={TOKEN_COST_NAIRA}
+              step={TOKEN_COST_NAIRA}
+              placeholder={`e.g. ${TOKEN_COST_NAIRA}, 1000, 1500`}
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {validAmount
+                ? `You will receive ${Math.floor(numericAmount / TOKEN_COST_NAIRA)} link${Math.floor(numericAmount / TOKEN_COST_NAIRA) !== 1 ? "s" : ""} worth of wallet credit.`
+                : `Minimum is ₦${TOKEN_COST_NAIRA}. Buy in multiples of ₦${TOKEN_COST_NAIRA} for full links.`}
+            </p>
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
@@ -93,10 +114,11 @@ function BuyTokensModal({ onClose }: { onClose: () => void }) {
 
           <Button
             className="w-full bg-[#25D366] hover:bg-[#20bf5a] text-white gap-2"
-            onClick={() => window.open(whatsappUrl, "_blank")}
+            disabled={!validAmount}
+            onClick={() => window.open(whatsappUrl, "_blank", "noopener,noreferrer")}
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.116 1.523 5.845L.057 23.492a.5.5 0 00.614.611l5.796-1.52A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.812 9.812 0 01-5.002-1.366l-.359-.214-3.721.976.993-3.622-.234-.373A9.818 9.818 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
-            Chat on WhatsApp
+            Mark as paid & send receipt
           </Button>
 
           <Button variant="outline" className="w-full" onClick={onClose}>
@@ -110,7 +132,7 @@ function BuyTokensModal({ onClose }: { onClose: () => void }) {
 
 export default function LinksPage() {
   const { toast } = useToast();
-  const { user, setTokenBalance } = useAuth();
+  const { user, setWallet } = useAuth();
   const queryClient = useQueryClient();
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [emailCopiedId, setEmailCopiedId] = useState<number | null>(null);
@@ -135,7 +157,7 @@ export default function LinksPage() {
       onSuccess: (data: any) => {
         queryClient.invalidateQueries({ queryKey: getListLinksQueryKey() });
         toast({ title: "Link created", description: "Your custom chat link is ready to share." });
-        if (typeof data?.tokenBalance === "number") setTokenBalance(data.tokenBalance);
+        if (typeof data?.walletBalance === "number") setWallet(data.walletBalance, data.linksAvailable);
         createForm.reset();
         setShowCreate(false);
       },
@@ -197,7 +219,7 @@ export default function LinksPage() {
   };
 
   const onSubmit = (data: CreateLinkValues) => {
-    if ((user?.tokenBalance ?? 0) < 1) {
+    if ((user?.walletBalance ?? 0) < TOKEN_COST_NAIRA) {
       setShowCreate(false);
       setShowBuyTokens(true);
       return;
@@ -215,7 +237,8 @@ export default function LinksPage() {
     updateLink.mutate({ id: editingLink.id, data: { customName: data.customName } });
   };
 
-  const tokenBalance = user?.tokenBalance ?? 0;
+  const walletBalance = user?.walletBalance ?? 0;
+  const linksAvailable = user?.linksAvailable ?? Math.floor(walletBalance / TOKEN_COST_NAIRA);
 
   return (
     <Layout>
@@ -223,8 +246,8 @@ export default function LinksPage() {
         <header className="h-16 px-8 flex items-center justify-between border-b border-border bg-card shrink-0">
           <h1 className="text-xl font-semibold text-foreground">My Links</h1>
           <div className="flex items-center gap-3">
-            <TokenBadge balance={tokenBalance} />
-            {tokenBalance === 0 && (
+            <TokenBadge balance={linksAvailable} />
+            {walletBalance < TOKEN_COST_NAIRA && (
               <Button variant="outline" size="sm" className="gap-1.5 text-yellow-600 border-yellow-300 hover:bg-yellow-50" onClick={() => setShowBuyTokens(true)}>
                 <Coins className="w-3.5 h-3.5" /> Buy Tokens
               </Button>
@@ -239,16 +262,16 @@ export default function LinksPage() {
           <div className="max-w-2xl mx-auto space-y-4">
             <div className="flex items-start justify-between gap-4">
               <p className="text-sm text-muted-foreground">
-                Each link costs <strong>1 token (₦{TOKEN_COST_NAIRA})</strong>. Share links with different audiences and track their conversations.
+                Each support link costs <strong>₦{TOKEN_COST_NAIRA}</strong>. Share links with different audiences and track their conversations.
               </p>
             </div>
 
-            {tokenBalance === 0 && (
+            {walletBalance < TOKEN_COST_NAIRA && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
                 <Coins className="w-5 h-5 text-amber-500 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-amber-800">You have no tokens</p>
-                  <p className="text-xs text-amber-700 mt-0.5">Contact admin on WhatsApp <strong>08135590989</strong> to buy tokens (₦{TOKEN_COST_NAIRA} each).</p>
+                  <p className="text-sm font-semibold text-amber-800">You need wallet credit</p>
+                  <p className="text-xs text-amber-700 mt-0.5">Buy wallet credit to create support links (₦{TOKEN_COST_NAIRA} per link).</p>
                 </div>
                 <Button size="sm" className="bg-[#25D366] hover:bg-[#20bf5a] text-white shrink-0" onClick={() => setShowBuyTokens(true)}>
                   Buy Now
@@ -303,9 +326,9 @@ export default function LinksPage() {
                 </div>
                 <p className="font-medium text-foreground mb-1">No links yet</p>
                 <p className="text-sm text-muted-foreground mb-6">Create your first custom link to start receiving messages.</p>
-                <Button onClick={() => tokenBalance > 0 ? setShowCreate(true) : setShowBuyTokens(true)} className="gap-2">
+                <Button onClick={() => walletBalance >= TOKEN_COST_NAIRA ? setShowCreate(true) : setShowBuyTokens(true)} className="gap-2">
                   <Plus className="w-4 h-4" />
-                  {tokenBalance > 0 ? "Create your first link" : "Buy tokens to get started"}
+                  {walletBalance >= TOKEN_COST_NAIRA ? "Create your first link" : "Buy wallet credit to get started"}
                 </Button>
               </div>
             )}
@@ -324,7 +347,7 @@ export default function LinksPage() {
           </DialogHeader>
           <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-lg mb-2">
             <Coins className="w-4 h-4 text-yellow-500" />
-            <span className="text-sm text-muted-foreground">This will use <strong>1 token</strong>. You have <strong>{tokenBalance}</strong>.</span>
+            <span className="text-sm text-muted-foreground">This will use <strong>₦{TOKEN_COST_NAIRA}</strong>. You have <strong>₦{walletBalance.toLocaleString()}</strong>.</span>
           </div>
           <form onSubmit={createForm.handleSubmit(onSubmit)} className="space-y-5 mt-1">
             <div className="space-y-2">

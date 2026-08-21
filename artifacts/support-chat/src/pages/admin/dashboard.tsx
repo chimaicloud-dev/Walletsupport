@@ -19,7 +19,7 @@ interface Stats {
   totalCredited: number;
 }
 
-const LINK_COST = 300;
+const LINK_COST = 500;
 const ADMIN_WA = "2348135590989";
 
 function api(path: string, opts?: RequestInit) {

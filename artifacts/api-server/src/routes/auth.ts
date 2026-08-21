@@ -8,7 +8,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
 const SALT_ROUNDS = 10;
-const LINK_COST = 300; // Naira per link
+const LINK_COST = 500; // Naira per link
 
 function userPayload(user: typeof usersTable.$inferSelect) {
   return {
