@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Copy, Link as LinkIcon, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 
 const settingsSchema = z.object({
@@ -25,8 +24,6 @@ type SettingsValues = z.infer<typeof settingsSchema>;
 export default function SettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [copied, setCopied] = useState(false);
-  
   const { data: userProfile, isLoading } = useGetMe({
     query: {
       queryKey: getGetMeQueryKey()
@@ -72,19 +69,6 @@ export default function SettingsPage() {
     upsertMe.mutate({ data });
   };
 
-  const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-  const shareableLink = userProfile?.handle 
-    ? `${window.location.origin}${basePath}/chat/${userProfile.handle}` 
-    : "";
-
-  const handleCopyLink = () => {
-    if (!shareableLink) return;
-    navigator.clipboard.writeText(shareableLink);
-    setCopied(true);
-    toast({ title: "Link copied", description: "Shareable link copied to clipboard." });
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <Layout>
       <div className="flex flex-col h-full">
@@ -95,37 +79,6 @@ export default function SettingsPage() {
         <div className="flex-1 overflow-auto p-8">
           <div className="max-w-2xl mx-auto space-y-8">
             
-            {/* Shareable Link Section */}
-            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <LinkIcon className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Your Support Link</h3>
-                  <p className="text-sm text-muted-foreground">Share this link with your audience to receive messages.</p>
-                </div>
-              </div>
-              
-              {isLoading ? (
-                <Skeleton className="h-12 w-full rounded-md" />
-              ) : (
-                <div className="flex items-center mt-4">
-                  <div className="flex-1 bg-muted px-4 py-3 rounded-l-lg border border-border border-r-0 truncate text-sm font-medium text-foreground">
-                    {shareableLink || "Set a handle to generate your link"}
-                  </div>
-                  <Button 
-                    onClick={handleCopyLink}
-                    disabled={!shareableLink}
-                    className="rounded-l-none h-[46px] px-6"
-                  >
-                    {copied ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                    {copied ? "Copied" : "Copy Link"}
-                  </Button>
-                </div>
-              )}
-            </div>
-
             {/* Profile Form */}
             <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold mb-6">Profile Details</h3>
