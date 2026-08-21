@@ -1,8 +1,9 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/auth";
-import { Inbox, Settings, LogOut, Link as LinkIcon, Mail } from "lucide-react";
+import { Inbox, Settings, LogOut, Link as LinkIcon, Mail, Menu, X } from "lucide-react";
 import { useGetConversationStats } from "@workspace/api-client-react";
+import { useState } from "react";
 
 interface LayoutProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const { data: stats } = useGetConversationStats({
     query: {
       queryKey: ["/api/conversations/stats"],
@@ -20,10 +22,20 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="flex min-h-[100dvh] bg-sidebar">
       {/* Sidebar — dark navy */}
-      <aside className="w-64 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      {sidebarOpen && (
+      <aside className="w-64 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shrink-0">
         <div className="h-16 flex items-center px-5 border-b border-sidebar-border gap-2.5">
           <img src="/bot-avatar.svg" alt="Wallet support ExPJdev" className="w-8 h-8 rounded-full shrink-0" />
-          <span className="font-bold text-base tracking-tight text-white">Wallet support ExPJdev</span>
+          <span className="font-bold text-base tracking-tight text-white flex-1">Wallet support ExPJdev</span>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-md text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-white transition-colors"
+            aria-label="Hide navigation menu"
+            title="Hide menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -91,9 +103,21 @@ export default function Layout({ children }: LayoutProps) {
           </button>
         </div>
       </aside>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden">
+        {!sidebarOpen && (
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="fixed left-4 top-4 z-20 p-2 rounded-lg bg-sidebar text-sidebar-foreground shadow-lg hover:bg-sidebar-accent transition-colors"
+            aria-label="Open navigation menu"
+            title="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
         {children}
       </main>
     </div>
