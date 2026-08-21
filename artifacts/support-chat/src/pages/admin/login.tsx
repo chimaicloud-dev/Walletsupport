@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-white">Admin Portal</h1>
-          <p className="text-gray-400 text-sm mt-1">Wallet Support — Internal Dashboard</p>
+          <p className="text-gray-400 text-sm mt-1">Favrixtech Wallet Support — Internal Dashboard</p>
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
@@ -81,7 +81,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-center text-gray-600 text-xs mt-6">
-          Wallet Support Admin — Restricted Access
+          Favrixtech Wallet Support Admin — Restricted Access
         </p>
       </div>
     </div>

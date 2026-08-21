@@ -120,7 +120,7 @@ export default function AdminDashboard() {
             </svg>
           </div>
           <div>
-            <h1 className="text-sm font-semibold">Wallet Support Admin</h1>
+            <h1 className="text-sm font-semibold">Favrixtech Wallet Support Admin</h1>
             <p className="text-xs text-gray-400">{admin.email}</p>
           </div>
         </div>

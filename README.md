@@ -1,4 +1,4 @@
-# Wallet Support ExPJdev
+# Favrixtech Wallet Support
 
 A professional live customer support chat platform for crypto exchange users. Agents get shareable chat links, visitors chat in real time, and admins manage conversations in a full inbox dashboard.
 

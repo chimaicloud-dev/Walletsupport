@@ -25,8 +25,8 @@ export default function Layout({ children }: LayoutProps) {
       {sidebarOpen && (
       <aside className="w-64 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shrink-0">
         <div className="h-16 flex items-center px-5 border-b border-sidebar-border gap-2.5">
-          <img src="/bot-avatar.svg" alt="Wallet support ExPJdev" className="w-8 h-8 rounded-full shrink-0" />
-          <span className="font-bold text-base tracking-tight text-white flex-1">Wallet support ExPJdev</span>
+          <img src="/bot-avatar.svg" alt="Favrixtech Wallet Support" className="w-8 h-8 rounded-full shrink-0" />
+          <span className="font-bold text-base tracking-tight text-white flex-1">Favrixtech Wallet Support</span>
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
