@@ -292,7 +292,6 @@ export default function LinksPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">{link.label}</p>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">{getLinkUrl(link.slug)}</p>
                       <div className="flex items-center gap-1.5 mt-2">
                         <span className="text-[11px] text-muted-foreground">Chat name:</span>
                         <span className="text-[11px] font-medium text-foreground">
