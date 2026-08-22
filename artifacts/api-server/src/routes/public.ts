@@ -113,18 +113,25 @@ router.post("/link/:slug/contact", async (req, res) => {
   }
 
   const conv = await db.transaction(async (tx) => {
-    const [claimedLink] = await tx.update(chatLinksTable)
+    // The first visitor starts the 24-hour subscription. Once active,
+    // additional visitors can all start their own conversations.
+    const [activatedLink] = await tx.update(chatLinksTable)
       .set({ expiresAt: sql`NOW() + INTERVAL '24 hours'` })
       .where(and(
         eq(chatLinksTable.id, link.id),
-        sql`(${chatLinksTable.expiresAt} IS NULL OR ${chatLinksTable.expiresAt} <= NOW())`,
+        sql`${chatLinksTable.expiresAt} IS NULL`,
       ))
       .returning();
 
-    if (!claimedLink) {
-      const alreadyUsed = new Error("This support link has already been used.");
-      (alreadyUsed as any).statusCode = 410;
-      throw alreadyUsed;
+    if (!activatedLink) {
+      const [activeLink] = await tx.select({ expiresAt: chatLinksTable.expiresAt })
+        .from(chatLinksTable)
+        .where(eq(chatLinksTable.id, link.id));
+      if (!activeLink?.expiresAt || activeLink.expiresAt <= new Date()) {
+        const unavailable = new Error("Support not available.");
+        (unavailable as any).statusCode = 410;
+        throw unavailable;
+      }
     }
 
     const token = generateToken();
