@@ -194,7 +194,7 @@ export default function LinksPage() {
   const getLinkUrl = (slug: string) => `${window.location.origin}${basePath}/c/${slug}`;
 
   const handleCopy = (id: number, slug: string) => {
-    navigator.clipboard.writeText(`${basePath}/c/${slug}`);
+    navigator.clipboard.writeText(getLinkUrl(slug));
     setCopiedId(id);
     toast({ title: "Link copied to clipboard" });
     setTimeout(() => setCopiedId(null), 2000);
