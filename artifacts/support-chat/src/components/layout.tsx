@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/auth";
-import { Inbox, Settings, LogOut, Link as LinkIcon, Mail, Menu, X } from "lucide-react";
+import { Inbox, Settings, LogOut, Link as LinkIcon, Mail, Menu, X, BookOpen } from "lucide-react";
 import { useGetConversationStats } from "@workspace/api-client-react";
 import { useState } from "react";
 
@@ -81,6 +81,19 @@ export default function Layout({ children }: LayoutProps) {
           >
             <Settings className="w-4.5 h-4.5 mr-3 opacity-80" />
             Settings
+          </Link>
+
+          <Link
+            href="/how-it-works"
+            className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              location.startsWith("/how-it-works")
+                ? "bg-sidebar-primary/20 text-sidebar-primary"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            }`}
+            data-testid="nav-how-it-works"
+          >
+            <BookOpen className="w-4.5 h-4.5 mr-3 opacity-80" />
+            How It Works
           </Link>
         </nav>
 

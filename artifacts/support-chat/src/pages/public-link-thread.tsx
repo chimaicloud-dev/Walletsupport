@@ -93,8 +93,7 @@ export default function PublicLinkThreadPage() {
     return (
       <div className="flex flex-col w-full max-w-md mx-auto h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
         <BotAvatar size={72} />
-        <h2 className="text-xl font-bold mt-4 mb-2">Conversation not found</h2>
-        <p className="text-gray-500 text-sm text-center mb-6">This support link is limited to one visitor.</p>
+        <h2 className="text-xl font-bold mt-4 mb-2">Support not available</h2>
         <button
           onClick={handleBack}
           className="bg-[#F0B429] text-gray-900 font-semibold px-6 py-2.5 rounded-full text-sm"

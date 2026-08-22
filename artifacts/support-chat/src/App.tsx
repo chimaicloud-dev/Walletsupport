@@ -12,6 +12,7 @@ import SignUpPage from "@/pages/sign-up";
 import InboxPage from "@/pages/inbox";
 import ThreadPage from "@/pages/thread";
 import SettingsPage from "@/pages/settings";
+import HowItWorksPage from "@/pages/how-it-works";
 import LinksPage from "@/pages/links";
 import PublicChatPage from "@/pages/public-chat";
 import PublicThreadPage from "@/pages/public-thread";
@@ -55,6 +56,7 @@ function AppRoutes() {
           <Route path="/inbox" component={() => <ProtectedRoute component={InboxPage} />} />
           <Route path="/inbox/:id" component={() => <ProtectedRoute component={ThreadPage} />} />
           <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
+          <Route path="/how-it-works" component={() => <ProtectedRoute component={HowItWorksPage} />} />
           <Route path="/links" component={() => <ProtectedRoute component={LinksPage} />} />
 
           <Route path="/chat/:handle" component={PublicChatPage} />
