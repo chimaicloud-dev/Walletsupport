@@ -33,7 +33,7 @@ export default function SignUpPage() {
     <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-blue-700 to-blue-600 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/bot-avatar.svg" alt="Favrixtech Wallet Support" className="w-14 h-14 rounded-full mx-auto mb-4" />
+          <img src="/bot-avatar.svg" alt="Support" className="w-14 h-14 rounded-full mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white">Create your account</h1>
           <p className="text-blue-200 text-sm mt-1">Set up your support inbox in seconds</p>
         </div>

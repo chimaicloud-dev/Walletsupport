@@ -96,7 +96,7 @@ export default function AdminDashboard() {
   }
 
   function openWhatsApp(user: User) {
-    const msg = `Hi, following up on your Wallet Support payment request.\n\n📧 ${user.email}\n🔖 @${user.handle}\n\nCurrent balance: ₦${user.walletBalance.toLocaleString()}\n\nPlease confirm your payment so we can credit your account.`;
+    const msg = `Hi, following up on your Support payment request.\n\n📧 ${user.email}\n🔖 @${user.handle}\n\nCurrent balance: ₦${user.walletBalance.toLocaleString()}\n\nPlease confirm your payment so we can credit your account.`;
     window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
   }
 
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
             </svg>
           </div>
           <div>
-            <h1 className="text-sm font-semibold">Favrixtech Wallet Support Admin</h1>
+            <h1 className="text-sm font-semibold">Support Admin</h1>
             <p className="text-xs text-gray-400">{admin.email}</p>
           </div>
         </div>

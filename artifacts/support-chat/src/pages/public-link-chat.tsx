@@ -9,7 +9,7 @@ import { Send } from "lucide-react";
 
 function BotAvatar({ size = 48 }: { size?: number }) {
   return (
-    <img src="/bot-avatar.svg" alt="Favrixtech Wallet Support" width={size} height={size} style={{ borderRadius: "50%" }} />
+    <img src="/bot-avatar.svg" alt="Support" width={size} height={size} style={{ borderRadius: "50%" }} />
   );
 }
 
@@ -25,7 +25,7 @@ export default function PublicLinkChatPage() {
 
   const tokenKey = `chat_token_link_${slug}`;
 
-  const { data: profile } = useGetLinkProfile(slug, {
+  const { data: profile, isError: profileError } = useGetLinkProfile(slug, {
     query: { queryKey: getGetLinkProfileQueryKey(slug), retry: false },
   });
 
@@ -67,9 +67,19 @@ export default function PublicLinkChatPage() {
 
   const agentName = profile?.displayName || "Customer Support";
 
+  if (profileError) {
+    return (
+      <div className="flex flex-col w-full max-w-md mx-auto h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
+        <BotAvatar size={72} />
+        <h2 className="text-xl font-bold mt-4 mb-2">This link is no longer available</h2>
+        <p className="text-gray-500 text-sm text-center">Each support link can be used by one visitor only.</p>
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
+      <div className="flex flex-col w-full max-w-md mx-auto h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
         <BotAvatar size={72} />
         <h2 className="text-xl font-bold mt-4 mb-2">Connection failed</h2>
         <p className="text-gray-500 text-sm text-center mb-6">We could not reach support. Please try again.</p>
@@ -83,7 +93,7 @@ export default function PublicLinkChatPage() {
 
   if (submitted) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
+      <div className="flex flex-col w-full max-w-md mx-auto h-[100dvh] bg-[#f0f0f0]">
         <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shadow-sm">
           <BotAvatar size={44} />
           <div>
@@ -108,7 +118,7 @@ export default function PublicLinkChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
+    <div className="flex flex-col w-full max-w-md mx-auto h-[100dvh] bg-[#f0f0f0]">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shadow-sm shrink-0">
         <BotAvatar size={44} />

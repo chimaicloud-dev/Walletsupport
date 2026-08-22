@@ -83,6 +83,7 @@ router.get("/setup-db", async (_req, res) => {
         slug        TEXT NOT NULL UNIQUE,
         label       TEXT NOT NULL,
         custom_name TEXT,
+        is_used     BOOLEAN NOT NULL DEFAULT false,
         created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);

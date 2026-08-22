@@ -27,7 +27,7 @@ export default function SignInPage() {
     <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-blue-700 to-blue-600 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/bot-avatar.svg" alt="Favrixtech Wallet Support" className="w-14 h-14 rounded-full mx-auto mb-4" />
+          <img src="/bot-avatar.svg" alt="Support" className="w-14 h-14 rounded-full mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white">Welcome back</h1>
           <p className="text-blue-200 text-sm mt-1">Sign in to your support dashboard</p>
         </div>

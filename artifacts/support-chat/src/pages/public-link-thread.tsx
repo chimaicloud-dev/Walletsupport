@@ -72,7 +72,7 @@ export default function PublicLinkThreadPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
+      <div className="flex flex-col w-full max-w-md mx-auto h-[100dvh] bg-[#f0f0f0]">
         <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
           <Skeleton className="w-8 h-8 rounded-full" />
           <Skeleton className="w-10 h-10 rounded-full" />
@@ -91,15 +91,15 @@ export default function PublicLinkThreadPage() {
 
   if (error || !conversation) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
+      <div className="flex flex-col w-full max-w-md mx-auto h-[100dvh] bg-[#f0f0f0] items-center justify-center p-6">
         <BotAvatar size={72} />
         <h2 className="text-xl font-bold mt-4 mb-2">Conversation not found</h2>
-        <p className="text-gray-500 text-sm text-center mb-6">This thread may have expired.</p>
+        <p className="text-gray-500 text-sm text-center mb-6">This support link is limited to one visitor.</p>
         <button
           onClick={handleBack}
           className="bg-[#F0B429] text-gray-900 font-semibold px-6 py-2.5 rounded-full text-sm"
         >
-          Start a new chat
+          Back
         </button>
       </div>
     );
@@ -109,7 +109,7 @@ export default function PublicLinkThreadPage() {
   const agentName = conversation.ownerDisplayName;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#f0f0f0]">
+    <div className="flex flex-col w-full max-w-md mx-auto h-[100dvh] bg-[#f0f0f0]">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shadow-sm shrink-0">
         <button onClick={handleBack} className="text-gray-500 hover:text-gray-800 shrink-0 p-1">

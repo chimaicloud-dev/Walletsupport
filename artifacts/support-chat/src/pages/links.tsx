@@ -56,7 +56,7 @@ function BuyTokensModal({ onClose }: { onClose: () => void }) {
   const numericAmount = Number(amount);
   const validAmount = Number.isInteger(numericAmount) && numericAmount >= TOKEN_COST_NAIRA;
   const whatsappMsg = encodeURIComponent(
-    `Hello Wallet Support,\n\nI have paid for wallet support tokens.\n\nAccount email: ${user?.email}\nHandle: @${user?.handle}\nAmount paid: ₦${validAmount ? numericAmount.toLocaleString() : amount || "0"}\nTokens requested: ${validAmount ? Math.floor(numericAmount / TOKEN_COST_NAIRA) : 0}\n\nPlease verify my receipt and credit my wallet.`
+    `Hello Support,\n\nI have paid for support tokens.\n\nAccount email: ${user?.email}\nHandle: @${user?.handle}\nAmount paid: ₦${validAmount ? numericAmount.toLocaleString() : amount || "0"}\nTokens requested: ${validAmount ? Math.floor(numericAmount / TOKEN_COST_NAIRA) : 0}\n\nPlease verify my receipt and credit my wallet.`
   );
   const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP}?text=${whatsappMsg}`;
 

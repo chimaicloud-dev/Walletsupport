@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, conversationsTable, messagesTable, chatLinksTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 const router = Router();
@@ -18,6 +18,10 @@ router.get("/:handle", async (req, res) => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
   if (!user) {
     res.status(404).json({ error: "User not found" });
+    return;
+  }
+  if (link.isUsed) {
+    res.status(410).json({ error: "This support link has already been used." });
     return;
   }
   res.json({
@@ -108,28 +112,44 @@ router.post("/link/:slug/contact", async (req, res) => {
     return;
   }
 
-  const token = generateToken();
-  const subject = `Chat with ${guestName}`;
-  const agentName = link.customName?.trim() || null;
+  const conv = await db.transaction(async (tx) => {
+    const [claimedLink] = await tx.update(chatLinksTable)
+      .set({ isUsed: true })
+      .where(and(eq(chatLinksTable.id, link.id), eq(chatLinksTable.isUsed, false)))
+      .returning();
 
-  const [conv] = await db.insert(conversationsTable).values({
-    ownerId: user.id,
-    guestName,
-    guestEmail: null,
-    subject,
-    token,
-    status: "open",
-    isRead: false,
-    agentName,
-  }).returning();
+    if (!claimedLink) {
+      const alreadyUsed = new Error("This support link has already been used.");
+      (alreadyUsed as any).statusCode = 410;
+      throw alreadyUsed;
+    }
 
-  if (message && message.trim()) {
-    await db.insert(messagesTable).values({
-      conversationId: conv.id,
-      senderType: "guest",
-      content: message.trim(),
-    });
-  }
+    const token = generateToken();
+    const subject = `Chat with ${guestName}`;
+    const agentName = link.customName?.trim() || null;
+    const [created] = await tx.insert(conversationsTable).values({
+      ownerId: user.id,
+      guestName,
+      guestEmail: null,
+      subject,
+      token,
+      status: "open",
+      isRead: false,
+      agentName,
+    }).returning();
+
+    if (message && message.trim()) {
+      await tx.insert(messagesTable).values({
+        conversationId: created.id,
+        senderType: "guest",
+        content: message.trim(),
+      });
+    }
+    return created;
+  }).catch((err: any) => {
+    if (err?.statusCode === 410) throw err;
+    throw err;
+  });
 
   res.status(201).json({
     id: conv.id,

@@ -9,7 +9,7 @@ import { Send } from "lucide-react";
 
 function BotAvatar({ size = 48 }: { size?: number }) {
   return (
-    <img src="/bot-avatar.svg" alt="Favrixtech Wallet Support" width={size} height={size} style={{ borderRadius: "50%" }} />
+    <img src="/bot-avatar.svg" alt="Support" width={size} height={size} style={{ borderRadius: "50%" }} />
   );
 }
 
