@@ -4,6 +4,16 @@ import bcrypt from "bcryptjs";
 
 const router: IRouter = Router();
 
+// Non-destructive migration for the 24-hour link subscription feature
+router.get("/migrate-links", async (_req, res) => {
+  try {
+    await pool.query(`ALTER TABLE chat_links ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ`);
+    res.json({ status: "ok", message: "Support link expiry is ready. Existing users and links were preserved." });
+  } catch (err: any) {
+    res.status(500).json({ status: "error", error: err?.message ?? String(err) });
+  }
+});
+
 router.get("/setup-db", async (_req, res) => {
   const steps: string[] = [];
   try {
@@ -83,7 +93,7 @@ router.get("/setup-db", async (_req, res) => {
         slug        TEXT NOT NULL UNIQUE,
         label       TEXT NOT NULL,
         custom_name TEXT,
-        is_used     BOOLEAN NOT NULL DEFAULT false,
+        expires_at  TIMESTAMPTZ,
         created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);

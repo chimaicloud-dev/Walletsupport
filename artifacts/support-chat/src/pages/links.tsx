@@ -139,6 +139,7 @@ export default function LinksPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showBuyTokens, setShowBuyTokens] = useState(false);
   const [editingLink, setEditingLink] = useState<{ id: number; customName: string | null; label: string } | null>(null);
+  const [renewingId, setRenewingId] = useState<number | null>(null);
 
   const { data: links, isLoading } = useListLinks({ query: { queryKey: getListLinksQueryKey() } });
 
@@ -189,6 +190,29 @@ export default function LinksPage() {
   const deleteLink = useDeleteLink({
     mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListLinksQueryKey() }) },
   });
+
+  const renewLink = async (id: number) => {
+    setRenewingId(id);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(`/api/links/${id}/renew`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        toast({ variant: "destructive", title: "Could not renew link", description: data.error || "Please try again." });
+        return;
+      }
+      setWallet(data.walletBalance, data.linksAvailable);
+      await queryClient.invalidateQueries({ queryKey: getListLinksQueryKey() });
+      toast({ title: "Link renewed", description: "Your support link is active for another 24 hours." });
+    } catch {
+      toast({ variant: "destructive", title: "Could not renew link", description: "Please try again." });
+    } finally {
+      setRenewingId(null);
+    }
+  };
 
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   const getLinkUrl = (slug: string) => `${window.location.origin}${basePath}/c/${slug}`;
@@ -301,6 +325,15 @@ export default function LinksPage() {
                       >
                         /c/{link.slug}
                       </a>
+                      {(() => {
+                        const expiresAt = (link as any).expiresAt as string | null | undefined;
+                        const active = !!expiresAt && new Date(expiresAt).getTime() > Date.now();
+                        return (
+                          <p className={`text-[11px] mt-1 ${active ? "text-green-600" : "text-amber-600"}`}>
+                            {active ? `Active until ${new Date(expiresAt!).toLocaleString()}` : "Not active — renew to reopen"}
+                          </p>
+                        );
+                      })()}
                       <div className="flex items-center gap-1.5 mt-2">
                         <span className="text-[11px] text-muted-foreground">Chat name:</span>
                         <span className="text-[11px] font-medium text-foreground">
@@ -312,6 +345,21 @@ export default function LinksPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {(() => {
+                        const expiresAt = (link as any).expiresAt as string | null | undefined;
+                        const active = !!expiresAt && new Date(expiresAt).getTime() > Date.now();
+                        return !active && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => renewLink(link.id)}
+                            disabled={renewingId === link.id || walletBalance < TOKEN_COST_NAIRA}
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                          >
+                            {renewingId === link.id ? "Renewing…" : "Renew ₦500"}
+                          </Button>
+                        );
+                      })()}
                       <Button size="sm" variant="outline" onClick={() => handleCopyEmail(link.id, link.slug, link.customName?.trim() || link.label)} className={`gap-1.5 ${emailCopiedId === link.id ? "border-green-300 text-green-700" : ""}`} title="Copy HTML email snippet">
                         {emailCopiedId === link.id ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <Mail className="w-3.5 h-3.5" />}
                         {emailCopiedId === link.id ? "Copied!" : "Email"}

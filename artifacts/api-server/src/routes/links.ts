@@ -11,7 +11,9 @@ router.get("/", requireAuth, async (req, res) => {
   const links = await db.select().from(chatLinksTable).where(eq(chatLinksTable.ownerId, userId));
   res.json(links.map(l => ({
     id: l.id, slug: l.slug, label: l.label,
-    customName: l.customName ?? null, createdAt: l.createdAt.toISOString(),
+    customName: l.customName ?? null,
+    expiresAt: l.expiresAt?.toISOString() ?? null,
+    createdAt: l.createdAt.toISOString(),
   })));
 });
 
@@ -59,7 +61,8 @@ router.post("/", requireAuth, async (req, res) => {
 
     res.status(201).json({
       id: link.id, slug: link.slug, label: link.label,
-      customName: link.customName ?? null, createdAt: link.createdAt.toISOString(),
+      customName: link.customName ?? null, expiresAt: link.expiresAt?.toISOString() ?? null,
+      createdAt: link.createdAt.toISOString(),
       walletBalance: updated.walletBalance,
       linksAvailable: Math.floor(updated.walletBalance / LINK_COST),
     });
@@ -70,6 +73,70 @@ router.post("/", requireAuth, async (req, res) => {
     }
     console.error("Failed to create chat link:", err);
     res.status(500).json({ error: "Something went wrong creating the link. Please try again." });
+  }
+});
+
+// Renew an expired link for another 24 hours
+router.post("/:id/renew", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as number;
+  const id = parseInt(req.params.id as string);
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [user] = await tx.select({ walletBalance: usersTable.walletBalance })
+        .from(usersTable).where(eq(usersTable.id, userId));
+      if (!user || user.walletBalance < LINK_COST) {
+        const error = new Error(`Insufficient balance. You need ₦${LINK_COST} to renew this link.`);
+        (error as any).statusCode = 402;
+        throw error;
+      }
+
+      const [link] = await tx.select().from(chatLinksTable)
+        .where(and(eq(chatLinksTable.id, id), eq(chatLinksTable.ownerId, userId)));
+      if (!link) {
+        const error = new Error("Link not found.");
+        (error as any).statusCode = 404;
+        throw error;
+      }
+      if (link.expiresAt && link.expiresAt > new Date()) {
+        const error = new Error("This support link is still active.");
+        (error as any).statusCode = 409;
+        throw error;
+      }
+
+      const [renewed] = await tx.update(chatLinksTable)
+        .set({ expiresAt: sql`NOW() + INTERVAL '24 hours'` })
+        .where(eq(chatLinksTable.id, id))
+        .returning();
+
+      const [updatedUser] = await tx.update(usersTable)
+        .set({ walletBalance: sql`${usersTable.walletBalance} - ${LINK_COST}` })
+        .where(eq(usersTable.id, userId))
+        .returning({ walletBalance: usersTable.walletBalance });
+
+      await tx.insert(walletTransactionsTable).values({
+        userId, amount: -LINK_COST, type: "link_renewed",
+        note: `Link renewed: /c/${renewed.slug}`,
+      });
+
+      return { renewed, walletBalance: updatedUser.walletBalance };
+    });
+
+    res.json({
+      id: result.renewed.id,
+      slug: result.renewed.slug,
+      expiresAt: result.renewed.expiresAt?.toISOString() ?? null,
+      walletBalance: result.walletBalance,
+      linksAvailable: Math.floor(result.walletBalance / LINK_COST),
+    });
+  } catch (err: any) {
+    const status = err?.statusCode;
+    if (status) {
+      res.status(status).json({ error: err.message });
+      return;
+    }
+    console.error("Failed to renew chat link:", err);
+    res.status(500).json({ error: "Something went wrong renewing the link." });
   }
 });
 

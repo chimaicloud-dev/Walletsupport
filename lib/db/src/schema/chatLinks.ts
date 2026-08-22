@@ -9,7 +9,7 @@ export const chatLinksTable = pgTable("chat_links", {
   slug: text("slug").notNull().unique(),
   label: text("label").notNull(),
   customName: text("custom_name"),
-  isUsed: boolean("is_used").notNull().default(false),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

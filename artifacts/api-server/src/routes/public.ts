@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, conversationsTable, messagesTable, chatLinksTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 const router = Router();
@@ -20,8 +20,8 @@ router.get("/:handle", async (req, res) => {
     res.status(404).json({ error: "User not found" });
     return;
   }
-  if (link.isUsed) {
-    res.status(410).json({ error: "This support link has already been used." });
+  if (link.expiresAt && link.expiresAt <= new Date()) {
+    res.status(410).json({ error: "Support not available." });
     return;
   }
   res.json({
@@ -114,8 +114,11 @@ router.post("/link/:slug/contact", async (req, res) => {
 
   const conv = await db.transaction(async (tx) => {
     const [claimedLink] = await tx.update(chatLinksTable)
-      .set({ isUsed: true })
-      .where(and(eq(chatLinksTable.id, link.id), eq(chatLinksTable.isUsed, false)))
+      .set({ expiresAt: sql`NOW() + INTERVAL '24 hours'` })
+      .where(and(
+        eq(chatLinksTable.id, link.id),
+        sql`(${chatLinksTable.expiresAt} IS NULL OR ${chatLinksTable.expiresAt} <= NOW())`,
+      ))
       .returning();
 
     if (!claimedLink) {
