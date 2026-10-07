@@ -2,10 +2,9 @@ import { Router } from "express";
 import { db, chatLinksTable, usersTable, walletTransactionsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
+import { getLinkCost } from "../lib/pricing";
 
 const router = Router();
-const LINK_COST = 500; // Naira per link
-
 router.get("/", requireAuth, async (req, res) => {
   const userId = (req as any).userId as number;
   const links = await db.select().from(chatLinksTable).where(eq(chatLinksTable.ownerId, userId));
@@ -19,6 +18,7 @@ router.get("/", requireAuth, async (req, res) => {
 
 router.post("/", requireAuth, async (req, res) => {
   const userId = (req as any).userId as number;
+  const linkCost = await getLinkCost();
   const { slug, label, customName } = req.body;
 
   if (!slug || typeof slug !== "string" || !slug.trim()) {
@@ -26,14 +26,17 @@ router.post("/", requireAuth, async (req, res) => {
     return;
   }
 
-  const [user] = await db.select({ walletBalance: usersTable.walletBalance })
+  const [user] = await db.select({
+    walletBalance: usersTable.walletBalance,
+    isFreeSubscription: usersTable.isFreeSubscription,
+  })
     .from(usersTable).where(eq(usersTable.id, userId));
 
-  if (!user || user.walletBalance < LINK_COST) {
+  if (!user || (!user.isFreeSubscription && user.walletBalance < linkCost)) {
     res.status(402).json({
-      error: `Insufficient balance. You need at least ₦${LINK_COST} to create a link.`,
+      error: `Insufficient balance. You need at least ₦${linkCost} to create a link.`,
       walletBalance: user?.walletBalance ?? 0,
-      required: LINK_COST,
+      required: linkCost,
     });
     return;
   }
@@ -46,15 +49,15 @@ router.post("/", requireAuth, async (req, res) => {
       customName: customName?.trim() || null,
     }).returning();
 
-    // Deduct ₦500 from wallet
-    await db.update(usersTable)
-      .set({ walletBalance: sql`${usersTable.walletBalance} - ${LINK_COST}` })
-      .where(eq(usersTable.id, userId));
-
-    await db.insert(walletTransactionsTable).values({
-      userId, amount: -LINK_COST, type: "link_created",
-      note: `Link created: /c/${safeSlug}`,
-    });
+    if (!user.isFreeSubscription) {
+      await db.update(usersTable)
+        .set({ walletBalance: sql`${usersTable.walletBalance} - ${linkCost}` })
+        .where(eq(usersTable.id, userId));
+      await db.insert(walletTransactionsTable).values({
+        userId, amount: -linkCost, type: "link_created",
+        note: `Link created: /c/${safeSlug}`,
+      });
+    }
 
     const [updated] = await db.select({ walletBalance: usersTable.walletBalance })
       .from(usersTable).where(eq(usersTable.id, userId));
@@ -64,7 +67,8 @@ router.post("/", requireAuth, async (req, res) => {
       customName: link.customName ?? null, expiresAt: link.expiresAt?.toISOString() ?? null,
       createdAt: link.createdAt.toISOString(),
       walletBalance: updated.walletBalance,
-      linksAvailable: Math.floor(updated.walletBalance / LINK_COST),
+      linksAvailable: user.isFreeSubscription ? 0 : Math.floor(updated.walletBalance / linkCost),
+      isFreeSubscription: user.isFreeSubscription,
     });
   } catch (err: any) {
     if (err?.code === "23505") {
@@ -80,13 +84,17 @@ router.post("/", requireAuth, async (req, res) => {
 router.post("/:id/renew", requireAuth, async (req, res) => {
   const userId = (req as any).userId as number;
   const id = parseInt(req.params.id as string);
+  const linkCost = await getLinkCost();
 
   try {
     const result = await db.transaction(async (tx) => {
-      const [user] = await tx.select({ walletBalance: usersTable.walletBalance })
+      const [user] = await tx.select({
+        walletBalance: usersTable.walletBalance,
+        isFreeSubscription: usersTable.isFreeSubscription,
+      })
         .from(usersTable).where(eq(usersTable.id, userId));
-      if (!user || user.walletBalance < LINK_COST) {
-        const error = new Error(`Insufficient balance. You need ₦${LINK_COST} to renew this link.`);
+      if (!user || (!user.isFreeSubscription && user.walletBalance < linkCost)) {
+        const error = new Error(`Insufficient balance. You need ₦${linkCost} to renew this link.`);
         (error as any).statusCode = 402;
         throw error;
       }
@@ -98,28 +106,31 @@ router.post("/:id/renew", requireAuth, async (req, res) => {
         (error as any).statusCode = 404;
         throw error;
       }
-      if (link.expiresAt && link.expiresAt > new Date()) {
+      if (!user.isFreeSubscription && link.expiresAt && link.expiresAt > new Date()) {
         const error = new Error("This support link is still active.");
         (error as any).statusCode = 409;
         throw error;
       }
 
       const [renewed] = await tx.update(chatLinksTable)
-        .set({ expiresAt: sql`NOW() + INTERVAL '24 hours'` })
+        .set({ expiresAt: user.isFreeSubscription ? null : sql`NOW() + INTERVAL '24 hours'` })
         .where(eq(chatLinksTable.id, id))
         .returning();
 
-      const [updatedUser] = await tx.update(usersTable)
-        .set({ walletBalance: sql`${usersTable.walletBalance} - ${LINK_COST}` })
-        .where(eq(usersTable.id, userId))
-        .returning({ walletBalance: usersTable.walletBalance });
+      let walletBalance = user.walletBalance;
+      if (!user.isFreeSubscription) {
+        const [updatedUser] = await tx.update(usersTable)
+          .set({ walletBalance: sql`${usersTable.walletBalance} - ${linkCost}` })
+          .where(eq(usersTable.id, userId))
+          .returning({ walletBalance: usersTable.walletBalance });
+        walletBalance = updatedUser.walletBalance;
+        await tx.insert(walletTransactionsTable).values({
+          userId, amount: -linkCost, type: "link_renewed",
+          note: `Link renewed: /c/${renewed.slug}`,
+        });
+      }
 
-      await tx.insert(walletTransactionsTable).values({
-        userId, amount: -LINK_COST, type: "link_renewed",
-        note: `Link renewed: /c/${renewed.slug}`,
-      });
-
-      return { renewed, walletBalance: updatedUser.walletBalance };
+      return { renewed, walletBalance, isFreeSubscription: user.isFreeSubscription };
     });
 
     res.json({
@@ -127,7 +138,8 @@ router.post("/:id/renew", requireAuth, async (req, res) => {
       slug: result.renewed.slug,
       expiresAt: result.renewed.expiresAt?.toISOString() ?? null,
       walletBalance: result.walletBalance,
-      linksAvailable: Math.floor(result.walletBalance / LINK_COST),
+      linksAvailable: result.isFreeSubscription ? 0 : Math.floor(result.walletBalance / linkCost),
+      isFreeSubscription: result.isFreeSubscription,
     });
   } catch (err: any) {
     const status = err?.statusCode;

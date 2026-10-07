@@ -61,7 +61,7 @@ export default function PublicLinkThreadPage() {
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyContent.trim()) return;
+    if (sendGuestMessage.isPending || !replyContent.trim()) return;
     sendGuestMessage.mutate({ token, data: { content: replyContent.trim() } });
   };
 
@@ -156,9 +156,7 @@ export default function PublicLinkThreadPage() {
                   isGuest ? "bg-[#F0B429] rounded-br-sm" : "bg-white rounded-bl-sm"
                 }`}
               >
-                <p className={`text-sm leading-relaxed ${isGuest ? "text-gray-900" : "text-gray-800"}`}>
-                  {msg.content}
-                </p>
+                <div className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${isGuest ? "text-gray-900" : "text-gray-800"}`}>{msg.content}</div>
                 <p className={`text-[11px] mt-1.5 text-right ${isGuest ? "text-gray-700/60" : "text-gray-400"}`}>
                   {format(new Date(msg.createdAt), "HH:mm")}
                 </p>

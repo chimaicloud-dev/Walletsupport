@@ -20,10 +20,6 @@ router.get("/:handle", async (req, res) => {
     res.status(404).json({ error: "User not found" });
     return;
   }
-  if (link.expiresAt && link.expiresAt <= new Date()) {
-    res.status(410).json({ error: "Support not available." });
-    return;
-  }
   res.json({
     handle: user.handle,
     displayName: user.displayName,
@@ -45,7 +41,6 @@ router.post("/:handle/contact", async (req, res) => {
     res.status(404).json({ error: "User not found" });
     return;
   }
-
   const token = generateToken();
   const subject = `Chat with ${guestName}`;
 
@@ -88,6 +83,10 @@ router.get("/link/:slug", async (req, res) => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  if (!user.isFreeSubscription && link.expiresAt && link.expiresAt <= new Date()) {
+    res.status(410).json({ error: "Support not available." });
+    return;
+  }
   res.json({
     handle: user.handle,
     displayName: link.customName?.trim() || user.displayName,
@@ -115,22 +114,24 @@ router.post("/link/:slug/contact", async (req, res) => {
   const conv = await db.transaction(async (tx) => {
     // The first visitor starts the 24-hour subscription. Once active,
     // additional visitors can all start their own conversations.
-    const [activatedLink] = await tx.update(chatLinksTable)
-      .set({ expiresAt: sql`NOW() + INTERVAL '24 hours'` })
-      .where(and(
-        eq(chatLinksTable.id, link.id),
-        sql`${chatLinksTable.expiresAt} IS NULL`,
-      ))
-      .returning();
+    if (!user.isFreeSubscription) {
+      const [activatedLink] = await tx.update(chatLinksTable)
+        .set({ expiresAt: sql`NOW() + INTERVAL '24 hours'` })
+        .where(and(
+          eq(chatLinksTable.id, link.id),
+          sql`${chatLinksTable.expiresAt} IS NULL`,
+        ))
+        .returning();
 
-    if (!activatedLink) {
-      const [activeLink] = await tx.select({ expiresAt: chatLinksTable.expiresAt })
-        .from(chatLinksTable)
-        .where(eq(chatLinksTable.id, link.id));
-      if (!activeLink?.expiresAt || activeLink.expiresAt <= new Date()) {
-        const unavailable = new Error("Support not available.");
-        (unavailable as any).statusCode = 410;
-        throw unavailable;
+      if (!activatedLink) {
+        const [activeLink] = await tx.select({ expiresAt: chatLinksTable.expiresAt })
+          .from(chatLinksTable)
+          .where(eq(chatLinksTable.id, link.id));
+        if (!activeLink?.expiresAt || activeLink.expiresAt <= new Date()) {
+          const unavailable = new Error("Support not available.");
+          (unavailable as any).statusCode = 410;
+          throw unavailable;
+        }
       }
     }
 
@@ -187,6 +188,7 @@ router.get("/conversations/:token", async (req, res) => {
     id: conv.id,
     subject: conv.subject,
     guestName: conv.guestName,
+      token: conv.token,
     ownerDisplayName: conv.agentName || owner?.displayName || "Support",
     messages: msgs.map(m => ({
       id: m.id,

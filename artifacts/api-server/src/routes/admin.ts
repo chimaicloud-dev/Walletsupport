@@ -4,11 +4,10 @@ import { eq, desc, count, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { ensurePricingTable, getLinkCost } from "../lib/pricing";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
-const LINK_COST = 500;
-
 // Admin login
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
@@ -23,6 +22,34 @@ router.post("/login", async (req, res) => {
   } catch (err) {
     console.error("Admin login error:", err);
     res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// Sales price controls
+router.get("/settings", requireAdmin, async (_req, res) => {
+  try {
+    await ensurePricingTable();
+    res.json({ linkPrice: await getLinkCost() });
+  } catch {
+    res.status(500).json({ error: "Failed to load settings" });
+  }
+});
+
+router.put("/settings", requireAdmin, async (req, res) => {
+  const price = req.body?.linkPrice;
+  if (!Number.isInteger(price) || price <= 0) {
+    res.status(400).json({ error: "Sales price must be a positive whole number." });
+    return;
+  }
+  try {
+    await ensurePricingTable();
+    await db.$client.query(
+      `UPDATE app_settings SET value = $1, updated_at = NOW() WHERE key = 'link_price'`,
+      [String(price)],
+    );
+    res.json({ success: true, linkPrice: price });
+  } catch {
+    res.status(500).json({ error: "Failed to update sales price" });
   }
 });
 
@@ -47,14 +74,16 @@ router.get("/stats", requireAdmin, async (_req, res) => {
 // List all users
 router.get("/users", requireAdmin, async (_req, res) => {
   try {
+    const linkCost = await getLinkCost();
     const users = await db.select({
       id: usersTable.id, email: usersTable.email, handle: usersTable.handle,
       displayName: usersTable.displayName, walletBalance: usersTable.walletBalance,
+      isFreeSubscription: usersTable.isFreeSubscription,
       createdAt: usersTable.createdAt,
     }).from(usersTable).orderBy(desc(usersTable.createdAt));
     res.json(users.map(u => ({
       ...u,
-      linksAvailable: Math.floor(u.walletBalance / LINK_COST),
+      linksAvailable: Math.floor(u.walletBalance / linkCost),
       createdAt: u.createdAt.toISOString(),
     })));
   } catch { res.status(500).json({ error: "Failed to fetch users" }); }
@@ -69,6 +98,7 @@ router.post("/users/:id/credit", requireAdmin, async (req, res) => {
     return;
   }
   try {
+    const linkCost = await getLinkCost();
     const [user] = await db.select({ walletBalance: usersTable.walletBalance, displayName: usersTable.displayName })
       .from(usersTable).where(eq(usersTable.id, userId));
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -88,9 +118,39 @@ router.post("/users/:id/credit", requireAdmin, async (req, res) => {
     res.json({
       success: true,
       newBalance: updated.walletBalance,
-      linksAvailable: Math.floor(updated.walletBalance / LINK_COST),
+      linksAvailable: Math.floor(updated.walletBalance / linkCost),
     });
   } catch { res.status(500).json({ error: "Failed to credit wallet" }); }
+});
+
+router.put("/users/:id/free-subscription", requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id);
+  const enabled = req.body?.enabled;
+  if (!Number.isInteger(userId) || userId <= 0 || typeof enabled !== "boolean") {
+    res.status(400).json({ error: "A valid user and enabled flag are required." });
+    return;
+  }
+  try {
+    const [user] = await db.transaction(async (tx) => {
+      const [updatedUser] = await tx.update(usersTable)
+        .set({ isFreeSubscription: enabled })
+        .where(eq(usersTable.id, userId))
+        .returning({ id: usersTable.id, isFreeSubscription: usersTable.isFreeSubscription });
+      if (updatedUser && enabled) {
+        await tx.update(chatLinksTable)
+          .set({ expiresAt: null })
+          .where(eq(chatLinksTable.ownerId, userId));
+      }
+      return [updatedUser];
+    });
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    res.json({ success: true, isFreeSubscription: user.isFreeSubscription });
+  } catch {
+    res.status(500).json({ error: "Failed to update free subscription" });
+  }
 });
 
 // Get wallet transactions for a user

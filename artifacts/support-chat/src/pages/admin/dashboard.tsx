@@ -9,6 +9,7 @@ interface User {
   displayName: string;
   walletBalance: number;
   linksAvailable: number;
+  isFreeSubscription: boolean;
   createdAt: string;
 }
 
@@ -19,7 +20,6 @@ interface Stats {
   totalCredited: number;
 }
 
-const LINK_COST = 500;
 const ADMIN_WA = "2348135590989";
 
 function api(path: string, opts?: RequestInit) {
@@ -53,6 +53,10 @@ export default function AdminDashboard() {
   const [creditError, setCreditError] = useState("");
   const [creditSuccess, setCreditSuccess] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [linkCost, setLinkCost] = useState(500);
+  const [priceDraft, setPriceDraft] = useState("500");
+  const [savingPrice, setSavingPrice] = useState(false);
+  const [priceError, setPriceError] = useState("");
 
   useEffect(() => {
     if (!admin) { setLocation("/admin/login"); return; }
@@ -61,10 +65,46 @@ export default function AdminDashboard() {
 
   async function fetchAll() {
     setLoading(true);
-    const [sr, ur] = await Promise.all([api("/stats"), api("/users")]);
+    const [sr, ur, pr] = await Promise.all([api("/stats"), api("/users"), api("/settings")]);
     if (sr.ok) setStats(await sr.json());
     if (ur.ok) setUsers(await ur.json());
+    if (pr.ok) {
+      const settings = await pr.json();
+      setLinkCost(settings.linkPrice);
+      setPriceDraft(String(settings.linkPrice));
+    }
     setLoading(false);
+  }
+
+  async function savePrice() {
+    const amount = Number(priceDraft);
+    if (!Number.isInteger(amount) || amount <= 0) { setPriceError("Enter a positive whole amount in Naira."); return; }
+    setSavingPrice(true); setPriceError("");
+    try {
+      const res = await api("/settings", { method: "PUT", body: JSON.stringify({ linkPrice: amount }) });
+      const data = await res.json();
+      if (!res.ok) { setPriceError(data.error || "Could not save sales price."); return; }
+      setLinkCost(data.linkPrice);
+      setPriceDraft(String(data.linkPrice));
+      await fetchAll();
+    } catch { setPriceError("Network error. Try again."); }
+    finally { setSavingPrice(false); }
+  }
+
+  async function toggleFreeSubscription(user: User) {
+    const enabled = !user.isFreeSubscription;
+    const res = await api(`/users/${user.id}/free-subscription`, {
+      method: "PUT",
+      body: JSON.stringify({ enabled }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      window.alert(data.error || "Could not update free subscription.");
+      return;
+    }
+    setUsers(prev => prev.map(item => item.id === user.id
+      ? { ...item, isFreeSubscription: data.isFreeSubscription }
+      : item));
   }
 
   async function handleCredit() {
@@ -105,7 +145,7 @@ export default function AdminDashboard() {
   );
 
   const parsedAmount = parseInt(creditAmount) || 0;
-  const linksFromCredit = parsedAmount >= LINK_COST ? Math.floor(parsedAmount / LINK_COST) : 0;
+  const linksFromCredit = parsedAmount >= linkCost ? Math.floor(parsedAmount / linkCost) : 0;
 
   if (!admin) return null;
 
@@ -160,13 +200,35 @@ export default function AdminDashboard() {
           ))}
         </div>
 
+        {/* Sales price */}
+        <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-white">Sales price</h2>
+              <p className="text-xs text-gray-400 mt-1">Price per link creation or 24-hour renewal. Applies to all paid users.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="sr-only" htmlFor="sales-price">Price in naira</label>
+              <span className="text-gray-400">₦</span>
+              <input id="sales-price" type="number" min="1" step="1" value={priceDraft}
+                onChange={event => setPriceDraft(event.target.value)}
+                className="w-32 bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm" />
+              <button onClick={savePrice} disabled={savingPrice}
+                className="bg-yellow-400 hover:bg-yellow-300 disabled:opacity-60 text-gray-900 font-semibold px-4 py-2 rounded-lg text-sm">
+                {savingPrice ? "Saving…" : "Save price"}
+              </button>
+            </div>
+          </div>
+          {priceError && <p className="text-xs text-red-400 mt-3">{priceError}</p>}
+        </section>
+
         {/* Notice */}
         <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-2xl p-4 flex gap-3 items-start">
           <WhatsAppIcon className="w-5 h-5 text-[#25D366] shrink-0 mt-0.5" />
           <div>
             <p className="text-yellow-300 font-semibold text-sm">Payment Channel</p>
             <p className="text-yellow-200/70 text-xs mt-0.5">
-              Users send payment to <span className="text-white font-semibold">08135590989</span> via WhatsApp. Once confirmed, use <strong>"Credit Wallet"</strong> to add the naira amount to their account. Every ₦{LINK_COST} = 1 link they can create.
+              Users send payment via WhatsApp. Once confirmed, use <strong>"Credit Wallet"</strong> to add the naira amount to their account. Every ₦{linkCost.toLocaleString()} = 1 link creation or renewal. Use “Free access” on a user to waive all charges for that account.
             </p>
           </div>
         </div>
@@ -199,6 +261,7 @@ export default function AdminDashboard() {
                     <th className="px-6 py-3 text-xs font-medium text-gray-400">User</th>
                     <th className="px-6 py-3 text-xs font-medium text-gray-400">Balance</th>
                     <th className="px-6 py-3 text-xs font-medium text-gray-400">Links Available</th>
+                    <th className="px-6 py-3 text-xs font-medium text-gray-400">Subscription</th>
                     <th className="px-6 py-3 text-xs font-medium text-gray-400">Joined</th>
                     <th className="px-6 py-3 text-xs font-medium text-gray-400">Actions</th>
                   </tr>
@@ -216,8 +279,13 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${u.linksAvailable > 0 ? "bg-green-900/50 text-green-300" : "bg-red-900/40 text-red-300"}`}>
-                          {u.linksAvailable} link{u.linksAvailable !== 1 ? "s" : ""}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${u.linksAvailable > 0 || u.isFreeSubscription ? "bg-green-900/50 text-green-300" : "bg-red-900/40 text-red-300"}`}>
+                          {u.isFreeSubscription ? "Unlimited" : `${u.linksAvailable} link${u.linksAvailable !== 1 ? "s" : ""}`}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${u.isFreeSubscription ? "bg-cyan-900/50 text-cyan-300" : "bg-gray-800 text-gray-300"}`}>
+                          {u.isFreeSubscription ? "Free access" : "Paid"}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-400 text-xs">
@@ -225,6 +293,12 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={() => toggleFreeSubscription(u)}
+                            className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${u.isFreeSubscription ? "bg-cyan-900/60 text-cyan-200 hover:bg-cyan-900" : "border border-cyan-800 text-cyan-300 hover:bg-cyan-950"}`}
+                          >
+                            {u.isFreeSubscription ? "Remove free access" : "Free access"}
+                          </button>
                           <button
                             onClick={() => { setCreditUser(u); setCreditAmount(""); setCreditNote(""); setCreditError(""); setCreditSuccess(""); }}
                             className="text-xs bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-semibold px-3 py-1.5 rounded-lg transition-colors"
@@ -288,7 +362,7 @@ export default function AdminDashboard() {
                 {parsedAmount > 0 && (
                   <p className="text-xs text-gray-400 mt-1.5">
                     = <span className="text-yellow-400 font-semibold">{linksFromCredit} link{linksFromCredit !== 1 ? "s" : ""}</span> available after credit
-                    {parsedAmount % LINK_COST > 0 && ` (₦${parsedAmount % LINK_COST} remainder)`}
+                    {parsedAmount % linkCost > 0 && ` (₦${parsedAmount % linkCost} remainder)`}
                   </p>
                 )}
               </div>

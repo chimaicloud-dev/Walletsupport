@@ -11,8 +11,13 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
     return;
   }
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { sub: number; email: string };
-    (req as any).userId = payload.sub;
+    const payload = jwt.verify(token, JWT_SECRET);
+    const userId = typeof payload === "string" ? NaN : Number(payload.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      res.status(401).json({ error: "Invalid or expired token" });
+      return;
+    }
+    (req as any).userId = userId;
     next();
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });

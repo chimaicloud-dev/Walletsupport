@@ -45,7 +45,6 @@ export default function ThreadPage() {
       refetchInterval: 4000,
     },
   });
-
   useEffect(() => {
     if (conversation && !conversation.isRead) {
       markRead.mutate(
@@ -98,7 +97,7 @@ export default function ThreadPage() {
   });
 
   const handleSend = () => {
-    if (!replyContent.trim()) return;
+    if (sendMessage.isPending || !replyContent.trim()) return;
     sendMessage.mutate({ id, data: { content: replyContent.trim() } });
   };
 
@@ -177,9 +176,7 @@ export default function ThreadPage() {
                           : "bg-card border border-border text-card-foreground rounded-bl-sm"
                       }`}
                     >
-                      <div className="whitespace-pre-wrap break-words text-sm sm:text-base leading-relaxed">
-                        {msg.content}
-                      </div>
+                      <div className="whitespace-pre-wrap break-words text-sm sm:text-base leading-relaxed">{msg.content}</div>
                       <div className="text-xs mt-3 font-medium opacity-70 flex items-center justify-end gap-1.5">
                         {format(new Date(msg.createdAt), "MMM d, h:mm a")}
                       </div>
@@ -201,7 +198,8 @@ export default function ThreadPage() {
                 </p>
               </div>
             ) : (
-              <div className="flex gap-4 items-end bg-background border border-input rounded-xl p-2 focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-sm">
+              <div>
+              <div className="flex gap-2 sm:gap-4 items-end bg-background border border-input rounded-xl p-2 focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-sm">
                 <Textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
@@ -224,6 +222,7 @@ export default function ThreadPage() {
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
+              </div>
               </div>
             )}
           </div>

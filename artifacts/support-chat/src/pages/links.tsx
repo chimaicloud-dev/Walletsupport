@@ -9,7 +9,7 @@ import {
   useUpdateLink,
   useDeleteLink,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 
 const ADMIN_WHATSAPP = "2348135590989";
-const TOKEN_COST_NAIRA = 500;
+const DEFAULT_LINK_COST = 500;
 
 const createLinkSchema = z.object({
   slug: z.string().min(3, "At least 3 characters").max(50).regex(/^[a-zA-Z0-9_-]+$/, "Only letters, numbers, hyphens, and underscores"),
@@ -39,24 +39,24 @@ const editNameSchema = z.object({ customName: z.string().max(80) });
 type CreateLinkValues = z.infer<typeof createLinkSchema>;
 type EditNameValues = z.infer<typeof editNameSchema>;
 
-function TokenBadge({ balance }: { balance: number }) {
+function TokenBadge({ balance, isFree }: { balance: number; isFree: boolean }) {
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
-      balance > 0 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-600 border-red-200"
+      balance > 0 || isFree ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-600 border-red-200"
     }`}>
       <Coins className="w-3 h-3" />
-      {balance} token{balance !== 1 ? "s" : ""}
+      {isFree ? "Free access" : `${balance} token${balance !== 1 ? "s" : ""}`}
     </span>
   );
 }
 
-function BuyTokensModal({ onClose }: { onClose: () => void }) {
+function BuyTokensModal({ onClose, tokenCost }: { onClose: () => void; tokenCost: number }) {
   const { user } = useAuth();
   const [amount, setAmount] = useState("");
   const numericAmount = Number(amount);
-  const validAmount = Number.isInteger(numericAmount) && numericAmount >= TOKEN_COST_NAIRA;
+  const validAmount = Number.isInteger(numericAmount) && numericAmount >= tokenCost;
   const whatsappMsg = encodeURIComponent(
-    `Hello Support,\n\nI have paid for support tokens.\n\nAccount email: ${user?.email}\nHandle: @${user?.handle}\nAmount paid: ₦${validAmount ? numericAmount.toLocaleString() : amount || "0"}\nTokens requested: ${validAmount ? Math.floor(numericAmount / TOKEN_COST_NAIRA) : 0}\n\nPlease verify my receipt and credit my wallet.`
+    `Hello Support,\n\nI have paid for support tokens.\n\nAccount email: ${user?.email}\nHandle: @${user?.handle}\nAmount paid: ₦${validAmount ? numericAmount.toLocaleString() : amount || "0"}\nLinks requested: ${validAmount ? Math.floor(numericAmount / tokenCost) : 0}\n\nPlease verify my receipt and credit my wallet.`
   );
   const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP}?text=${whatsappMsg}`;
 
@@ -74,7 +74,7 @@ function BuyTokensModal({ onClose }: { onClose: () => void }) {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
             <p className="text-sm font-semibold text-amber-800 mb-1">How it works</p>
             <ul className="text-sm text-amber-700 space-y-1 list-none">
-              <li>🔗 Each support link costs <strong>₦{TOKEN_COST_NAIRA}</strong></li>
+              <li>🔗 Each support link costs <strong>₦{tokenCost.toLocaleString()}</strong></li>
               <li>💳 Enter the amount you want to buy below</li>
               <li>📱 Pay into the account, then send your receipt</li>
             </ul>
@@ -91,16 +91,16 @@ function BuyTokensModal({ onClose }: { onClose: () => void }) {
             <Input
               id="token-purchase-amount"
               type="number"
-              min={TOKEN_COST_NAIRA}
-              step={TOKEN_COST_NAIRA}
-              placeholder={`e.g. ${TOKEN_COST_NAIRA}, 1000, 1500`}
+              min={tokenCost}
+              step={tokenCost}
+              placeholder={`e.g. ${tokenCost}, ${tokenCost * 2}, ${tokenCost * 3}`}
               value={amount}
               onChange={e => setAmount(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
               {validAmount
-                ? `You will receive ${Math.floor(numericAmount / TOKEN_COST_NAIRA)} link${Math.floor(numericAmount / TOKEN_COST_NAIRA) !== 1 ? "s" : ""} worth of wallet credit.`
-                : `Minimum is ₦${TOKEN_COST_NAIRA}. Buy in multiples of ₦${TOKEN_COST_NAIRA} for full links.`}
+                ? `You will receive ${Math.floor(numericAmount / tokenCost)} link${Math.floor(numericAmount / tokenCost) !== 1 ? "s" : ""} worth of wallet credit.`
+                : `Minimum is ₦${tokenCost}. Buy in multiples of ₦${tokenCost} for full links.`}
             </p>
           </div>
 
@@ -133,6 +133,18 @@ function BuyTokensModal({ onClose }: { onClose: () => void }) {
 export default function LinksPage() {
   const { toast } = useToast();
   const { user, setWallet } = useAuth();
+  const { data: pricing } = useQuery({
+    queryKey: ["/api/auth/pricing"],
+    queryFn: async () => {
+      const response = await fetch("/api/auth/pricing");
+      if (!response.ok) throw new Error("Could not load current link price.");
+      return response.json() as Promise<{ linkPrice: number }>;
+    },
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+  const tokenCost = pricing?.linkPrice ?? user?.linkCost ?? DEFAULT_LINK_COST;
+  const isFreeSubscription = user?.isFreeSubscription ?? false;
   const queryClient = useQueryClient();
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [emailCopiedId, setEmailCopiedId] = useState<number | null>(null);
@@ -243,7 +255,7 @@ export default function LinksPage() {
   };
 
   const onSubmit = (data: CreateLinkValues) => {
-    if ((user?.walletBalance ?? 0) < TOKEN_COST_NAIRA) {
+    if (!isFreeSubscription && (user?.walletBalance ?? 0) < tokenCost) {
       setShowCreate(false);
       setShowBuyTokens(true);
       return;
@@ -262,7 +274,7 @@ export default function LinksPage() {
   };
 
   const walletBalance = user?.walletBalance ?? 0;
-  const linksAvailable = user?.linksAvailable ?? Math.floor(walletBalance / TOKEN_COST_NAIRA);
+  const linksAvailable = Math.floor(walletBalance / tokenCost);
 
   return (
     <Layout>
@@ -270,8 +282,8 @@ export default function LinksPage() {
         <header className="h-16 px-8 flex items-center justify-between border-b border-border bg-card shrink-0">
           <h1 className="text-xl font-semibold text-foreground">My Links</h1>
           <div className="flex items-center gap-3">
-            <TokenBadge balance={linksAvailable} />
-            {walletBalance < TOKEN_COST_NAIRA && (
+            <TokenBadge balance={linksAvailable} isFree={isFreeSubscription} />
+            {!isFreeSubscription && walletBalance < tokenCost && (
               <Button variant="outline" size="sm" className="gap-1.5 text-yellow-600 border-yellow-300 hover:bg-yellow-50" onClick={() => setShowBuyTokens(true)}>
                 <Coins className="w-3.5 h-3.5" /> Buy Tokens
               </Button>
@@ -286,16 +298,18 @@ export default function LinksPage() {
           <div className="max-w-2xl mx-auto space-y-4">
             <div className="flex items-start justify-between gap-4">
               <p className="text-sm text-muted-foreground">
-                Each support link costs <strong>₦{TOKEN_COST_NAIRA}</strong>. Share links with different audiences and track their conversations.
+                {isFreeSubscription
+                  ? <>Your account has free access. Create links without wallet charges; they stay active without renewals.</>
+                  : <>Each support link costs <strong>₦{tokenCost.toLocaleString()}</strong>. Share links with different audiences and track their conversations.</>}
               </p>
             </div>
 
-            {walletBalance < TOKEN_COST_NAIRA && (
+            {!isFreeSubscription && walletBalance < tokenCost && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
                 <Coins className="w-5 h-5 text-amber-500 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-amber-800">You need wallet credit</p>
-                  <p className="text-xs text-amber-700 mt-0.5">Buy wallet credit to create support links (₦{TOKEN_COST_NAIRA} per link).</p>
+                  <p className="text-xs text-amber-700 mt-0.5">Buy wallet credit to create support links (₦{tokenCost.toLocaleString()} per link).</p>
                 </div>
                 <Button size="sm" className="bg-[#25D366] hover:bg-[#20bf5a] text-white shrink-0" onClick={() => setShowBuyTokens(true)}>
                   Buy Now
@@ -327,10 +341,10 @@ export default function LinksPage() {
                       </a>
                       {(() => {
                         const expiresAt = (link as any).expiresAt as string | null | undefined;
-                        const active = !!expiresAt && new Date(expiresAt).getTime() > Date.now();
+                        const active = isFreeSubscription || (!!expiresAt && new Date(expiresAt).getTime() > Date.now());
                         return (
                           <p className={`text-[11px] mt-1 ${active ? "text-green-600" : "text-amber-600"}`}>
-                            {active ? `Active until ${new Date(expiresAt!).toLocaleString()}` : "Not active — renew to reopen"}
+                            {isFreeSubscription ? "Always active — free subscription" : active ? `Active until ${new Date(expiresAt!).toLocaleString()}` : "Not active — renew to reopen"}
                           </p>
                         );
                       })()}
@@ -347,16 +361,16 @@ export default function LinksPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       {(() => {
                         const expiresAt = (link as any).expiresAt as string | null | undefined;
-                        const active = !!expiresAt && new Date(expiresAt).getTime() > Date.now();
+                        const active = isFreeSubscription || (!!expiresAt && new Date(expiresAt).getTime() > Date.now());
                         return !active && (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => renewLink(link.id)}
-                            disabled={renewingId === link.id || walletBalance < TOKEN_COST_NAIRA}
+                            disabled={renewingId === link.id || (!isFreeSubscription && walletBalance < tokenCost)}
                             className="text-blue-600 border-blue-200 hover:bg-blue-50"
                           >
-                            {renewingId === link.id ? "Renewing…" : "Renew ₦500"}
+                            {renewingId === link.id ? "Renewing…" : isFreeSubscription ? "Renew free" : `Renew ₦${tokenCost.toLocaleString()}`}
                           </Button>
                         );
                       })()}
@@ -382,9 +396,9 @@ export default function LinksPage() {
                 </div>
                 <p className="font-medium text-foreground mb-1">No links yet</p>
                 <p className="text-sm text-muted-foreground mb-6">Create your first custom link to start receiving messages.</p>
-                <Button onClick={() => walletBalance >= TOKEN_COST_NAIRA ? setShowCreate(true) : setShowBuyTokens(true)} className="gap-2">
+                <Button onClick={() => isFreeSubscription || walletBalance >= tokenCost ? setShowCreate(true) : setShowBuyTokens(true)} className="gap-2">
                   <Plus className="w-4 h-4" />
-                  {walletBalance >= TOKEN_COST_NAIRA ? "Create your first link" : "Buy wallet credit to get started"}
+                  {isFreeSubscription || walletBalance >= tokenCost ? "Create your first link" : "Buy wallet credit to get started"}
                 </Button>
               </div>
             )}
@@ -393,7 +407,7 @@ export default function LinksPage() {
       </div>
 
       {/* Buy Tokens Modal */}
-      {showBuyTokens && <BuyTokensModal onClose={() => setShowBuyTokens(false)} />}
+      {showBuyTokens && <BuyTokensModal onClose={() => setShowBuyTokens(false)} tokenCost={tokenCost} />}
 
       {/* Create Link Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
@@ -403,7 +417,7 @@ export default function LinksPage() {
           </DialogHeader>
           <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-lg mb-2">
             <Coins className="w-4 h-4 text-yellow-500" />
-            <span className="text-sm text-muted-foreground">This will use <strong>₦{TOKEN_COST_NAIRA}</strong>. You have <strong>₦{walletBalance.toLocaleString()}</strong>.</span>
+            <span className="text-sm text-muted-foreground">{isFreeSubscription ? <>Free access is active; no wallet charge applies. Balance: </> : <>This will use <strong>₦{tokenCost.toLocaleString()}</strong>. You have </>}<strong>₦{walletBalance.toLocaleString()}</strong>.</span>
           </div>
           <form onSubmit={createForm.handleSubmit(onSubmit)} className="space-y-5 mt-1">
             <div className="space-y-2">

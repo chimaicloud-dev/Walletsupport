@@ -10,6 +10,8 @@ export interface AuthUser {
   avatarUrl?: string | null;
   walletBalance: number;
   linksAvailable: number;
+  linkCost?: number;
+  isFreeSubscription?: boolean;
 }
 
 interface AuthContextType {

@@ -62,6 +62,7 @@ router.get("/:id", requireAuth, async (req, res) => {
 
   res.json({
     id: conv.id,
+    token: conv.token,
     guestName: conv.guestName,
     guestEmail: conv.guestEmail ?? null,
     subject: conv.subject,

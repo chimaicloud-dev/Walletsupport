@@ -1,7 +1,23 @@
 import Layout from "@/components/layout";
 import { Wallet, Link as LinkIcon, MessageCircle, CheckCircle2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/context/auth";
+
+const DEFAULT_LINK_COST = 500;
 
 export default function HowItWorksPage() {
+  const { data: pricing } = useQuery({
+    queryKey: ["/api/auth/pricing"],
+    queryFn: async () => {
+      const response = await fetch("/api/auth/pricing");
+      if (!response.ok) throw new Error("Could not load current link price.");
+      return response.json() as Promise<{ linkPrice: number }>;
+    },
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+  const { user } = useAuth();
+  const linkCost = pricing?.linkPrice ?? user?.linkCost ?? DEFAULT_LINK_COST;
   return (
     <Layout>
       <div className="flex flex-col h-full">
@@ -34,7 +50,7 @@ export default function HowItWorksPage() {
                 </div>
                 <h2 className="font-semibold text-foreground mb-2">2. Generate a link</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  In <strong>My Links</strong>, click <strong>Create Link</strong>. Add a label, choose a unique URL name, and optionally set the chat header name. Each support link uses ₦500 from your wallet.
+                  In <strong>My Links</strong>, click <strong>Create Link</strong>. Add a label, choose a unique URL name, and optionally set the chat header name. {user?.isFreeSubscription ? "Your free subscription means links have no wallet charges and never need renewal." : <>Each link costs ₦{linkCost.toLocaleString()}. Its first visitor starts a 24-hour active period; after that, renew it for the same price.</>}
                 </p>
               </section>
 

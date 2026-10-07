@@ -4,13 +4,18 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { requireAuth } from "../middlewares/requireAuth";
+import { getLinkCost } from "../lib/pricing";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
 const SALT_ROUNDS = 10;
-const LINK_COST = 500; // Naira per link
 
-function userPayload(user: typeof usersTable.$inferSelect) {
+router.get("/pricing", async (_req, res) => {
+  res.json({ linkPrice: await getLinkCost() });
+});
+
+async function userPayload(user: typeof usersTable.$inferSelect) {
+  const linkCost = await getLinkCost();
   return {
     id: user.id,
     email: user.email,
@@ -19,7 +24,9 @@ function userPayload(user: typeof usersTable.$inferSelect) {
     bio: user.bio ?? null,
     avatarUrl: user.avatarUrl ?? null,
     walletBalance: user.walletBalance,
-    linksAvailable: Math.floor(user.walletBalance / LINK_COST),
+    linksAvailable: Math.floor(user.walletBalance / linkCost),
+    linkCost,
+    isFreeSubscription: user.isFreeSubscription,
   };
 }
 
@@ -40,7 +47,7 @@ router.post("/register", async (req, res) => {
       .values({ email: email.toLowerCase().trim(), passwordHash, handle: handle.trim(), displayName: displayName.trim() })
       .returning();
     const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
-    res.status(201).json({ token, user: userPayload(user) });
+    res.status(201).json({ token, user: await userPayload(user) });
   } catch (err: any) {
     if (err?.code === "23505") {
       res.status(409).json({ error: "That email or handle is already taken" });
@@ -63,7 +70,7 @@ router.post("/login", async (req, res) => {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) { res.status(401).json({ error: "Invalid email or password" }); return; }
     const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({ token, user: userPayload(user) });
+    res.json({ token, user: await userPayload(user) });
   } catch (err: any) {
     console.error("Login error:", err?.message ?? err);
     res.status(500).json({ error: "Login failed. Please try again." });
@@ -75,7 +82,7 @@ router.get("/me", requireAuth, async (req, res) => {
   try {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
-    res.json(userPayload(user));
+    res.json(await userPayload(user));
   } catch {
     res.status(500).json({ error: "Failed to fetch user" });
   }

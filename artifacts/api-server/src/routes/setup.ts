@@ -8,7 +8,18 @@ const router: IRouter = Router();
 router.get("/migrate-links", async (_req, res) => {
   try {
     await pool.query(`ALTER TABLE chat_links ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ`);
-    res.json({ status: "ok", message: "Support link expiry is ready. Existing users and links were preserved." });
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_free_subscription BOOLEAN NOT NULL DEFAULT FALSE`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query(
+      `INSERT INTO app_settings (key, value) VALUES ('link_price', '500') ON CONFLICT (key) DO NOTHING`,
+    );
+    res.json({ status: "ok", message: "Link pricing and free subscriptions are ready. Existing users, wallets, and links were preserved." });
   } catch (err: any) {
     res.status(500).json({ status: "error", error: err?.message ?? String(err) });
   }
@@ -42,6 +53,7 @@ router.get("/setup-db", async (_req, res) => {
         bio            TEXT,
         avatar_url     TEXT,
         wallet_balance INTEGER NOT NULL DEFAULT 0,
+        is_free_subscription BOOLEAN NOT NULL DEFAULT FALSE,
         created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
